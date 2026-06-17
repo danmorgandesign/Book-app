@@ -346,8 +346,132 @@ function BookCard({ book }: { book: Book }) {
         <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
           {book.authors.join(", ") || "Unknown author"}
         </p>
+        {book.subgenre && (
+          <p className="mt-1.5 inline-block rounded-full bg-secondary px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+            {book.subgenre}
+          </p>
+        )}
       </div>
     </li>
+  );
+}
+
+function ConfirmBookDialog({
+  book,
+  busy,
+  onCancel,
+  onConfirm,
+}: {
+  book: BookData | null;
+  busy: boolean;
+  onCancel: () => void;
+  onConfirm: (book: BookData, category: string, subgenre: string) => void;
+}) {
+  const [category, setCategory] = useState<"Fiction" | "Non-Fiction" | "">("");
+  const [subgenre, setSubgenre] = useState<string>("");
+
+  useEffect(() => {
+    setCategory("");
+    setSubgenre("");
+  }, [book?.isbn]);
+
+  const options = category ? SUBGENRES[category] : [];
+  const canSave = !!book && !!category && !!subgenre && !busy;
+
+  return (
+    <Dialog open={!!book} onOpenChange={(o) => !o && onCancel()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Confirm book info</DialogTitle>
+          <DialogDescription>
+            Pick a category and shelf before adding to the library.
+          </DialogDescription>
+        </DialogHeader>
+
+        {book && (
+          <div className="flex gap-4">
+            <div className="aspect-[2/3] w-24 flex-none overflow-hidden rounded bg-secondary">
+              {book.cover_url ? (
+                <img
+                  src={book.cover_url}
+                  alt={`Cover of ${book.title}`}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center">
+                  <BookOpen className="h-6 w-6 opacity-40" />
+                </div>
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold leading-snug">{book.title}</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {book.authors.join(", ") || "Unknown author"}
+              </p>
+              {book.publisher && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {book.publisher}
+                  {book.published_date ? ` · ${book.published_date}` : ""}
+                </p>
+              )}
+              <p className="mt-1 text-xs text-muted-foreground">ISBN {book.isbn}</p>
+            </div>
+          </div>
+        )}
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-1.5">
+            <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Category
+            </label>
+            <Select
+              value={category}
+              onValueChange={(v) => {
+                setCategory(v as "Fiction" | "Non-Fiction");
+                setSubgenre("");
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Fiction / Non-Fiction" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Fiction">Fiction</SelectItem>
+                <SelectItem value="Non-Fiction">Non-Fiction</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-1.5">
+            <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Sub-genre
+            </label>
+            <Select value={subgenre} onValueChange={setSubgenre} disabled={!category}>
+              <SelectTrigger>
+                <SelectValue placeholder={category ? "Choose a shelf" : "Pick category first"} />
+              </SelectTrigger>
+              <SelectContent>
+                {options.map((g) => (
+                  <SelectItem key={g} value={g}>
+                    {g}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="ghost" onClick={onCancel} disabled={busy}>
+            Cancel
+          </Button>
+          <Button
+            disabled={!canSave}
+            onClick={() => book && category && subgenre && onConfirm(book, category, subgenre)}
+          >
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save to library"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
