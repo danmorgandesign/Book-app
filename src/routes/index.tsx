@@ -192,11 +192,11 @@ function Index() {
           <span className="text-primary italic">one scan</span> away.
         </h1>
         <p className="mt-5 max-w-xl text-lg text-muted-foreground">
-          Point your phone's camera at any book's barcode. We'll look it up and add
-          it to the shared shelf below — no account, no fuss.
+          Scan a book's barcode — or snap its front cover — and we'll add it to
+          the shared shelf. No account, no fuss.
         </p>
 
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
           <Button
             size="lg"
             onClick={() => setScannerOpen(true)}
@@ -208,7 +208,17 @@ function Index() {
             ) : (
               <ScanLine className="h-5 w-5" />
             )}
-            Scan a barcode
+            Scan barcode
+          </Button>
+          <Button
+            size="lg"
+            variant="secondary"
+            onClick={() => setCoverScannerOpen(true)}
+            disabled={busy}
+            className="h-14 gap-2 px-6 text-base"
+          >
+            <Camera className="h-5 w-5" />
+            Scan front cover
           </Button>
           <form
             onSubmit={(e) => {
