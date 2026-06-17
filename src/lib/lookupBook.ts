@@ -70,3 +70,51 @@ export async function lookupBook(rawIsbn: string): Promise<BookData | null> {
 
   return null;
 }
+
+function fromGoogleVolume(item: any, fallbackIsbn?: string): BookData | null {
+  const info = item?.volumeInfo;
+  if (!info) return null;
+  const ids: Array<{ type: string; identifier: string }> = info.industryIdentifiers ?? [];
+  const isbn13 = ids.find((i) => i.type === "ISBN_13")?.identifier;
+  const isbn10 = ids.find((i) => i.type === "ISBN_10")?.identifier;
+  const isbn = isbn13 ?? isbn10 ?? fallbackIsbn ?? "";
+  if (!isbn) return null;
+  return {
+    isbn: normalizeIsbn(isbn),
+    title: info.title ?? "Untitled",
+    authors: info.authors ?? [],
+    cover_url: info.imageLinks?.thumbnail?.replace("http:", "https:") ?? null,
+    publisher: info.publisher ?? null,
+    published_date: info.publishedDate ?? null,
+    page_count: info.pageCount ?? null,
+    description: info.description ?? null,
+  };
+}
+
+export async function lookupBookByQuery(
+  title: string,
+  authors: string[] = [],
+): Promise<BookData | null> {
+  const q = [
+    title ? `intitle:${title}` : "",
+    ...authors.filter(Boolean).map((a) => `inauthor:${a}`),
+  ]
+    .filter(Boolean)
+    .join("+");
+  if (!q) return null;
+  try {
+    const res = await fetch(
+      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=5`,
+    );
+    if (!res.ok) return null;
+    const json = await res.json();
+    const items: any[] = json.items ?? [];
+    for (const item of items) {
+      const book = fromGoogleVolume(item);
+      if (book) return book;
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
