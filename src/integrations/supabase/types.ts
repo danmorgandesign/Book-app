@@ -17,6 +17,7 @@ export type Database = {
       books: {
         Row: {
           authors: string[]
+          category: string | null
           cover_url: string | null
           created_at: string
           description: string | null
@@ -25,10 +26,12 @@ export type Database = {
           page_count: number | null
           published_date: string | null
           publisher: string | null
+          subgenre: string | null
           title: string
         }
         Insert: {
           authors?: string[]
+          category?: string | null
           cover_url?: string | null
           created_at?: string
           description?: string | null
@@ -37,10 +40,12 @@ export type Database = {
           page_count?: number | null
           published_date?: string | null
           publisher?: string | null
+          subgenre?: string | null
           title: string
         }
         Update: {
           authors?: string[]
+          category?: string | null
           cover_url?: string | null
           created_at?: string
           description?: string | null
@@ -49,6 +54,7 @@ export type Database = {
           page_count?: number | null
           published_date?: string | null
           publisher?: string | null
+          subgenre?: string | null
           title?: string
         }
         Relationships: []
