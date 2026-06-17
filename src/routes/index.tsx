@@ -55,8 +55,41 @@ interface Book {
   publisher: string | null;
   published_date: string | null;
   page_count: number | null;
+  category: string | null;
+  subgenre: string | null;
   created_at: string;
 }
+
+const SUBGENRES: Record<"Fiction" | "Non-Fiction", string[]> = {
+  Fiction: [
+    "Picture Book",
+    "Early Reader",
+    "Middle Grade",
+    "Young Adult",
+    "Literary",
+    "Mystery & Thriller",
+    "Sci-Fi & Fantasy",
+    "Historical",
+    "Romance",
+    "Graphic Novel",
+    "Poetry & Drama",
+  ],
+  "Non-Fiction": [
+    "Biography & Memoir",
+    "History",
+    "Science & Nature",
+    "Maths",
+    "Reference",
+    "Education & Teaching",
+    "Self-Help",
+    "Cookery",
+    "Art & Design",
+    "Travel",
+    "Religion & Philosophy",
+    "Sport",
+  ],
+};
+
 
 function Index() {
   const [books, setBooks] = useState<Book[]>([]);
