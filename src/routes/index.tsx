@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ScanLine, BookOpen, Loader2, Search, Camera } from "lucide-react";
 import { toast } from "sonner";
@@ -234,9 +234,17 @@ function Index() {
 
 
       <header className="mx-auto max-w-5xl px-6 pt-12 pb-8 sm:pt-20">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <BookOpen className="h-4 w-4" />
-          <span className="tracking-wide uppercase">Shelfscan</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <BookOpen className="h-4 w-4" />
+            <span className="tracking-wide uppercase">Shelfscan</span>
+          </div>
+          <Link
+            to="/books"
+            className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+          >
+            View library →
+          </Link>
         </div>
         <h1 className="mt-4 text-5xl font-semibold leading-[1.05] sm:text-6xl">
           Every book,<br />
