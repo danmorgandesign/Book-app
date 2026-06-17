@@ -120,10 +120,13 @@ function BooksPage() {
             </p>
           </div>
         ) : (
-          <ul className="grid grid-cols-2 gap-x-5 gap-y-10 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+          <ul className="flex flex-col gap-3">
             {filtered.map((book) => (
-              <li key={book.id} className="group flex flex-col gap-3">
-                <div className="relative aspect-[2/3] overflow-hidden rounded-md bg-secondary shadow-[0_10px_30px_-12px_rgba(60,30,10,0.4)] transition-transform duration-300 group-hover:-translate-y-1">
+              <li
+                key={book.id}
+                className="group flex items-center gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-accent/40"
+              >
+                <div className="h-16 w-11 flex-none overflow-hidden rounded bg-secondary">
                   {book.cover_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -133,23 +136,29 @@ function BooksPage() {
                       loading="lazy"
                     />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center p-3 text-center text-xs text-muted-foreground">
-                      <BookOpen className="h-8 w-8 opacity-40" />
+                    <div className="flex h-full w-full items-center justify-center">
+                      <BookOpen className="h-5 w-5 opacity-40" />
                     </div>
                   )}
                 </div>
-                <div>
-                  <p className="line-clamp-2 text-sm font-medium leading-snug">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium leading-snug">
                     {book.title}
                   </p>
-                  <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
                     {book.authors.join(", ") || "Unknown author"}
+                    {book.published_date ? ` · ${book.published_date}` : ""}
                   </p>
+                </div>
+                <div className="flex flex-col items-end gap-1">
                   {book.subgenre && (
-                    <p className="mt-1.5 inline-block rounded-full bg-secondary px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+                    <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
                       {book.subgenre}
-                    </p>
+                    </span>
                   )}
+                  <span className="text-[10px] tabular-nums text-muted-foreground">
+                    {book.isbn}
+                  </span>
                 </div>
               </li>
             ))}
