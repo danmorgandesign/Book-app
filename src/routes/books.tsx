@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { BookOpen, ArrowLeft, Loader2, Library, SlidersHorizontal } from "lucide-react";
+import { BookOpen, ArrowLeft, Loader2, Library, SlidersHorizontal, Save } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -10,6 +10,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/books")({
   head: () => ({
@@ -79,6 +92,7 @@ function BooksPage() {
   const [filter, setFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<"All" | "Fiction" | "Non-Fiction">("All");
   const [subgenreFilter, setSubgenreFilter] = useState<string>("All");
+  const [editing, setEditing] = useState<Book | null>(null);
 
   useEffect(() => {
     async function loadBooks() {
@@ -116,6 +130,11 @@ function BooksPage() {
 
   const activeFilterCount =
     (categoryFilter !== "All" ? 1 : 0) + (subgenreFilter !== "All" ? 1 : 0);
+
+  function handleSaved(updated: Book) {
+    setBooks((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
+    setEditing(null);
+  }
 
   return (
     <div className="min-h-screen">
@@ -230,49 +249,264 @@ function BooksPage() {
         ) : (
           <ul className="flex flex-col gap-3">
             {filtered.map((book) => (
-              <li
-                key={book.id}
-                className="group flex items-center gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-accent/40"
-              >
-                <div className="h-16 w-11 flex-none overflow-hidden rounded bg-secondary">
-                  {book.cover_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={book.cover_url}
-                      alt={`Cover of ${book.title}`}
-                      className="h-full w-full object-cover"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center">
-                      <BookOpen className="h-5 w-5 opacity-40" />
-                    </div>
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium leading-snug">
-                    {book.title}
-                  </p>
-                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                    {book.authors.join(", ") || "Unknown author"}
-                    {book.published_date ? ` · ${book.published_date}` : ""}
-                  </p>
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  {book.subgenre && (
-                    <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
-                      {book.subgenre}
+              <li key={book.id}>
+                <button
+                  type="button"
+                  onClick={() => setEditing(book)}
+                  className="group flex w-full items-center gap-4 rounded-xl border border-border bg-card p-4 text-left transition-colors hover:bg-accent/40 focus:outline-none focus:ring-2 focus:ring-primary/40"
+                >
+                  <div className="h-16 w-11 flex-none overflow-hidden rounded bg-secondary">
+                    {book.cover_url ? (
+                      <img
+                        src={book.cover_url}
+                        alt={`Cover of ${book.title}`}
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center">
+                        <BookOpen className="h-5 w-5 opacity-40" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium leading-snug">
+                      {book.title}
+                    </p>
+                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                      {book.authors.join(", ") || "Unknown author"}
+                      {book.published_date ? ` · ${book.published_date}` : ""}
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-end gap-1">
+                    {book.subgenre && (
+                      <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+                        {book.subgenre}
+                      </span>
+                    )}
+                    <span className="text-[10px] tabular-nums text-muted-foreground">
+                      {book.isbn}
                     </span>
-                  )}
-                  <span className="text-[10px] tabular-nums text-muted-foreground">
-                    {book.isbn}
-                  </span>
-                </div>
+                  </div>
+                </button>
               </li>
             ))}
           </ul>
         )}
       </main>
+
+      <EditBookDialog
+        book={editing}
+        onClose={() => setEditing(null)}
+        onSaved={handleSaved}
+      />
     </div>
+  );
+}
+
+function EditBookDialog({
+  book,
+  onClose,
+  onSaved,
+}: {
+  book: Book | null;
+  onClose: () => void;
+  onSaved: (b: Book) => void;
+}) {
+  const [form, setForm] = useState<Book | null>(book);
+  const [authorsText, setAuthorsText] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setForm(book);
+    setAuthorsText(book?.authors.join(", ") ?? "");
+  }, [book]);
+
+  if (!form) return null;
+
+  const category = (form.category as "Fiction" | "Non-Fiction" | null) ?? null;
+  const subgenreOptions = category ? SUBGENRES[category] : [];
+
+  async function handleSave() {
+    if (!form) return;
+    setSaving(true);
+    const authors = authorsText
+      .split(",")
+      .map((a) => a.trim())
+      .filter(Boolean);
+    const patch = {
+      title: form.title.trim(),
+      authors,
+      isbn: form.isbn.trim(),
+      publisher: form.publisher?.trim() || null,
+      published_date: form.published_date?.trim() || null,
+      page_count: form.page_count,
+      cover_url: form.cover_url?.trim() || null,
+      category: form.category,
+      subgenre: form.subgenre,
+    };
+    const { data, error } = await supabase
+      .from("books")
+      .update(patch)
+      .eq("id", form.id)
+      .select()
+      .single();
+    setSaving(false);
+    if (error) {
+      console.error(error);
+      toast.error("Couldn't save changes", { description: error.message });
+      return;
+    }
+    toast.success("Book updated");
+    onSaved(data as Book);
+  }
+
+  return (
+    <Dialog open={!!book} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Edit book</DialogTitle>
+          <DialogDescription>
+            Update details for this entry in the catalog.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid gap-4 py-2">
+          <div className="grid gap-1.5">
+            <Label htmlFor="title">Title</Label>
+            <Input
+              id="title"
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+            />
+          </div>
+
+          <div className="grid gap-1.5">
+            <Label htmlFor="authors">Authors</Label>
+            <Input
+              id="authors"
+              value={authorsText}
+              onChange={(e) => setAuthorsText(e.target.value)}
+              placeholder="Comma separated"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-1.5">
+              <Label htmlFor="isbn">ISBN</Label>
+              <Input
+                id="isbn"
+                value={form.isbn}
+                onChange={(e) => setForm({ ...form, isbn: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="published">Published</Label>
+              <Input
+                id="published"
+                value={form.published_date ?? ""}
+                onChange={(e) => setForm({ ...form, published_date: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-1.5">
+              <Label htmlFor="publisher">Publisher</Label>
+              <Input
+                id="publisher"
+                value={form.publisher ?? ""}
+                onChange={(e) => setForm({ ...form, publisher: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="pages">Pages</Label>
+              <Input
+                id="pages"
+                type="number"
+                value={form.page_count ?? ""}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    page_count: e.target.value ? parseInt(e.target.value, 10) : null,
+                  })
+                }
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-1.5">
+              <Label>Category</Label>
+              <Select
+                value={form.category ?? "unset"}
+                onValueChange={(v) =>
+                  setForm({
+                    ...form,
+                    category: v === "unset" ? null : v,
+                    subgenre: null,
+                  })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unset">Unset</SelectItem>
+                  <SelectItem value="Fiction">Fiction</SelectItem>
+                  <SelectItem value="Non-Fiction">Non-Fiction</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Sub-genre</Label>
+              <Select
+                value={form.subgenre ?? "unset"}
+                onValueChange={(v) =>
+                  setForm({ ...form, subgenre: v === "unset" ? null : v })
+                }
+                disabled={!category}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={category ? "Sub-genre" : "Pick category"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unset">Unset</SelectItem>
+                  {subgenreOptions.map((g) => (
+                    <SelectItem key={g} value={g}>
+                      {g}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid gap-1.5">
+            <Label htmlFor="cover">Cover URL</Label>
+            <Textarea
+              id="cover"
+              rows={2}
+              value={form.cover_url ?? ""}
+              onChange={(e) => setForm({ ...form, cover_url: e.target.value })}
+            />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose} disabled={saving}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            Save changes
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -1,0 +1,1 @@
+CREATE POLICY "Anyone can update books" ON public.books FOR UPDATE USING (true) WITH CHECK (true);
