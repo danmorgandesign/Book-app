@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { BookOpen, ArrowLeft, Loader2, Library, SlidersHorizontal, Save } from "lucide-react";
+import { BookOpen, ArrowLeft, Loader2, Library, SlidersHorizontal, Save, Pencil } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -250,11 +250,7 @@ function BooksPage() {
           <ul className="flex flex-col gap-3">
             {filtered.map((book) => (
               <li key={book.id}>
-                <button
-                  type="button"
-                  onClick={() => setEditing(book)}
-                  className="group flex w-full items-center gap-4 rounded-xl border border-border bg-card p-4 text-left transition-colors hover:bg-accent/40 focus:outline-none focus:ring-2 focus:ring-primary/40"
-                >
+                <div className="group flex w-full items-center gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-accent/40">
                   <div className="h-16 w-11 flex-none overflow-hidden rounded bg-secondary">
                     {book.cover_url ? (
                       <img
@@ -288,7 +284,15 @@ function BooksPage() {
                       {book.isbn}
                     </span>
                   </div>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditing(book)}
+                    className="ml-2 inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10 focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  >
+                    <Pencil className="h-3 w-3" />
+                    Edit this Book
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
