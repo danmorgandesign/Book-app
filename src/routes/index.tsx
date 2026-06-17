@@ -6,9 +6,24 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Toaster } from "@/components/ui/sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { CoverScanner } from "@/components/CoverScanner";
-import { lookupBook, lookupBookByQuery } from "@/lib/lookupBook";
+import { lookupBook, lookupBookByQuery, type BookData } from "@/lib/lookupBook";
 import { identifyCover } from "@/lib/identifyCover.functions";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -40,8 +55,41 @@ interface Book {
   publisher: string | null;
   published_date: string | null;
   page_count: number | null;
+  category: string | null;
+  subgenre: string | null;
   created_at: string;
 }
+
+const SUBGENRES: Record<"Fiction" | "Non-Fiction", string[]> = {
+  Fiction: [
+    "Picture Book",
+    "Early Reader",
+    "Middle Grade",
+    "Young Adult",
+    "Literary",
+    "Mystery & Thriller",
+    "Sci-Fi & Fantasy",
+    "Historical",
+    "Romance",
+    "Graphic Novel",
+    "Poetry & Drama",
+  ],
+  "Non-Fiction": [
+    "Biography & Memoir",
+    "History",
+    "Science & Nature",
+    "Maths",
+    "Reference",
+    "Education & Teaching",
+    "Self-Help",
+    "Cookery",
+    "Art & Design",
+    "Travel",
+    "Religion & Philosophy",
+    "Sport",
+  ],
+};
+
 
 function Index() {
   const [books, setBooks] = useState<Book[]>([]);
@@ -49,6 +97,7 @@ function Index() {
   const [coverScannerOpen, setCoverScannerOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [manualIsbn, setManualIsbn] = useState("");
+  const [pending, setPending] = useState<BookData | null>(null);
 
   async function loadBooks() {
     const { data, error } = await supabase
@@ -83,45 +132,8 @@ function Index() {
     };
   }, []);
 
-  async function handleIsbn(rawIsbn: string) {
-    setScannerOpen(false);
-    setBusy(true);
-    try {
-      const isbn = rawIsbn.replace(/[^0-9Xx]/g, "");
-      if (isbn.length !== 10 && isbn.length !== 13) {
-        toast.error("That doesn't look like a book barcode (ISBN-10/13).");
-        return;
-      }
-
-      const { data: existing } = await supabase
-        .from("books")
-        .select("title")
-        .eq("isbn", isbn)
-        .maybeSingle();
-      if (existing) {
-        toast(`Already on the shelf: ${existing.title}`);
-        return;
-      }
-
-      const book = await lookupBook(isbn);
-      if (!book) {
-        toast.error("Couldn't find that book. Try another edition?");
-        return;
-      }
-
-      const { error } = await supabase.from("books").insert(book);
-      if (error) {
-        toast.error(error.message);
-        return;
-      }
-      toast.success(`Added "${book.title}"`);
-      loadBooks();
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function insertBook(book: Awaited<ReturnType<typeof lookupBook>>) {
+  // Look up a book and, if it's new, stage it for the confirm step.
+  async function stageBook(book: BookData | null) {
     if (!book) return false;
     const { data: existing } = await supabase
       .from("books")
@@ -132,14 +144,28 @@ function Index() {
       toast(`Already on the shelf: ${existing.title}`);
       return true;
     }
-    const { error } = await supabase.from("books").insert(book);
-    if (error) {
-      toast.error(error.message);
-      return false;
-    }
-    toast.success(`Added "${book.title}"`);
-    loadBooks();
+    setPending(book);
     return true;
+  }
+
+  async function handleIsbn(rawIsbn: string) {
+    setScannerOpen(false);
+    setBusy(true);
+    try {
+      const isbn = rawIsbn.replace(/[^0-9Xx]/g, "");
+      if (isbn.length !== 10 && isbn.length !== 13) {
+        toast.error("That doesn't look like a book barcode (ISBN-10/13).");
+        return;
+      }
+      const book = await lookupBook(isbn);
+      if (!book) {
+        toast.error("Couldn't find that book. Try another edition?");
+        return;
+      }
+      await stageBook(book);
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function handleCover(imageBase64: string) {
@@ -151,16 +177,33 @@ function Index() {
         toast.error("Couldn't read the cover. Try better lighting or a closer shot.");
         return;
       }
-      // Prefer ISBN if the model returned one
       let book = id.isbn ? await lookupBook(id.isbn) : null;
       if (!book) book = await lookupBookByQuery(id.title, id.authors);
       if (!book) {
         toast.error(`Found "${id.title}" but no catalog match. Try the barcode instead.`);
         return;
       }
-      await insertBook(book);
+      await stageBook(book);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Cover scan failed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function saveConfirmed(book: BookData, category: string, subgenre: string) {
+    setBusy(true);
+    try {
+      const { error } = await supabase
+        .from("books")
+        .insert({ ...book, category, subgenre });
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      toast.success(`Added "${book.title}"`);
+      setPending(null);
+      loadBooks();
     } finally {
       setBusy(false);
     }
@@ -181,6 +224,14 @@ function Index() {
           onClose={() => setCoverScannerOpen(false)}
         />
       )}
+
+      <ConfirmBookDialog
+        book={pending}
+        busy={busy}
+        onCancel={() => setPending(null)}
+        onConfirm={saveConfirmed}
+      />
+
 
       <header className="mx-auto max-w-5xl px-6 pt-12 pb-8 sm:pt-20">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -295,8 +346,132 @@ function BookCard({ book }: { book: Book }) {
         <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
           {book.authors.join(", ") || "Unknown author"}
         </p>
+        {book.subgenre && (
+          <p className="mt-1.5 inline-block rounded-full bg-secondary px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+            {book.subgenre}
+          </p>
+        )}
       </div>
     </li>
+  );
+}
+
+function ConfirmBookDialog({
+  book,
+  busy,
+  onCancel,
+  onConfirm,
+}: {
+  book: BookData | null;
+  busy: boolean;
+  onCancel: () => void;
+  onConfirm: (book: BookData, category: string, subgenre: string) => void;
+}) {
+  const [category, setCategory] = useState<"Fiction" | "Non-Fiction" | "">("");
+  const [subgenre, setSubgenre] = useState<string>("");
+
+  useEffect(() => {
+    setCategory("");
+    setSubgenre("");
+  }, [book?.isbn]);
+
+  const options = category ? SUBGENRES[category] : [];
+  const canSave = !!book && !!category && !!subgenre && !busy;
+
+  return (
+    <Dialog open={!!book} onOpenChange={(o) => !o && onCancel()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Confirm book info</DialogTitle>
+          <DialogDescription>
+            Pick a category and shelf before adding to the library.
+          </DialogDescription>
+        </DialogHeader>
+
+        {book && (
+          <div className="flex gap-4">
+            <div className="aspect-[2/3] w-24 flex-none overflow-hidden rounded bg-secondary">
+              {book.cover_url ? (
+                <img
+                  src={book.cover_url}
+                  alt={`Cover of ${book.title}`}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center">
+                  <BookOpen className="h-6 w-6 opacity-40" />
+                </div>
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold leading-snug">{book.title}</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {book.authors.join(", ") || "Unknown author"}
+              </p>
+              {book.publisher && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {book.publisher}
+                  {book.published_date ? ` · ${book.published_date}` : ""}
+                </p>
+              )}
+              <p className="mt-1 text-xs text-muted-foreground">ISBN {book.isbn}</p>
+            </div>
+          </div>
+        )}
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-1.5">
+            <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Category
+            </label>
+            <Select
+              value={category}
+              onValueChange={(v) => {
+                setCategory(v as "Fiction" | "Non-Fiction");
+                setSubgenre("");
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Fiction / Non-Fiction" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Fiction">Fiction</SelectItem>
+                <SelectItem value="Non-Fiction">Non-Fiction</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-1.5">
+            <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Sub-genre
+            </label>
+            <Select value={subgenre} onValueChange={setSubgenre} disabled={!category}>
+              <SelectTrigger>
+                <SelectValue placeholder={category ? "Choose a shelf" : "Pick category first"} />
+              </SelectTrigger>
+              <SelectContent>
+                {options.map((g) => (
+                  <SelectItem key={g} value={g}>
+                    {g}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="ghost" onClick={onCancel} disabled={busy}>
+            Cancel
+          </Button>
+          <Button
+            disabled={!canSave}
+            onClick={() => book && category && subgenre && onConfirm(book, category, subgenre)}
+          >
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save to library"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
