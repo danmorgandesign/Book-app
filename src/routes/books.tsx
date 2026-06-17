@@ -1,8 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { BookOpen, ArrowLeft, Loader2, Library } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { BookOpen, ArrowLeft, Loader2, Library, SlidersHorizontal } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export const Route = createFileRoute("/books")({
   head: () => ({
