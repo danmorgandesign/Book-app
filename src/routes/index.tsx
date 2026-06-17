@@ -1,13 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ScanLine, BookOpen, Loader2, Search } from "lucide-react";
+import { ScanLine, BookOpen, Loader2, Search, Camera } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Toaster } from "@/components/ui/sonner";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
-import { lookupBook } from "@/lib/lookupBook";
+import { CoverScanner } from "@/components/CoverScanner";
+import { lookupBook, lookupBookByQuery } from "@/lib/lookupBook";
+import { identifyCover } from "@/lib/identifyCover.functions";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/")({
@@ -44,6 +46,7 @@ interface Book {
 function Index() {
   const [books, setBooks] = useState<Book[]>([]);
   const [scannerOpen, setScannerOpen] = useState(false);
+  const [coverScannerOpen, setCoverScannerOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [manualIsbn, setManualIsbn] = useState("");
 
@@ -118,6 +121,51 @@ function Index() {
     }
   }
 
+  async function insertBook(book: Awaited<ReturnType<typeof lookupBook>>) {
+    if (!book) return false;
+    const { data: existing } = await supabase
+      .from("books")
+      .select("title")
+      .eq("isbn", book.isbn)
+      .maybeSingle();
+    if (existing) {
+      toast(`Already on the shelf: ${existing.title}`);
+      return true;
+    }
+    const { error } = await supabase.from("books").insert(book);
+    if (error) {
+      toast.error(error.message);
+      return false;
+    }
+    toast.success(`Added "${book.title}"`);
+    loadBooks();
+    return true;
+  }
+
+  async function handleCover(imageBase64: string) {
+    setCoverScannerOpen(false);
+    setBusy(true);
+    try {
+      const id = await identifyCover({ data: { imageBase64 } });
+      if (!id || !id.title) {
+        toast.error("Couldn't read the cover. Try better lighting or a closer shot.");
+        return;
+      }
+      // Prefer ISBN if the model returned one
+      let book = id.isbn ? await lookupBook(id.isbn) : null;
+      if (!book) book = await lookupBookByQuery(id.title, id.authors);
+      if (!book) {
+        toast.error(`Found "${id.title}" but no catalog match. Try the barcode instead.`);
+        return;
+      }
+      await insertBook(book);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Cover scan failed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="min-h-screen">
       <Toaster richColors position="top-center" />
@@ -125,6 +173,12 @@ function Index() {
         <BarcodeScanner
           onDetected={handleIsbn}
           onClose={() => setScannerOpen(false)}
+        />
+      )}
+      {coverScannerOpen && (
+        <CoverScanner
+          onCapture={handleCover}
+          onClose={() => setCoverScannerOpen(false)}
         />
       )}
 
