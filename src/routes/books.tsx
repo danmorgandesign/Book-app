@@ -273,6 +273,14 @@ function BooksPage() {
                       {book.authors.join(", ") || "Unknown author"}
                       {book.published_date ? ` · ${book.published_date}` : ""}
                     </p>
+                    <button
+                      type="button"
+                      onClick={() => setEditing(book)}
+                      className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-primary transition-colors hover:underline focus:outline-none"
+                    >
+                      <Pencil className="h-3 w-3" />
+                      Edit this Book
+                    </button>
                   </div>
                   <div className="flex flex-col items-end gap-1">
                     {book.subgenre && (
@@ -284,14 +292,6 @@ function BooksPage() {
                       {book.isbn}
                     </span>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setEditing(book)}
-                    className="ml-2 inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10 focus:outline-none focus:ring-2 focus:ring-primary/40"
-                  >
-                    <Pencil className="h-3 w-3" />
-                    Edit this Book
-                  </button>
                 </div>
               </li>
             ))}
