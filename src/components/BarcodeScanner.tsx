@@ -21,15 +21,67 @@ export function BarcodeScanner({ onDetected, onClose }: Props) {
       BarcodeFormat.UPC_A,
       BarcodeFormat.UPC_E,
     ]);
-    const reader = new BrowserMultiFormatReader(hints);
+    hints.set(DecodeHintType.TRY_HARDER, true);
+
+    const reader = new BrowserMultiFormatReader(hints, {
+      delayBetweenScanAttempts: 120,
+      delayBetweenScanSuccess: 500,
+    });
+
     let controls: { stop: () => void } | null = null;
+    let stream: MediaStream | null = null;
     let cancelled = false;
 
     (async () => {
       try {
         if (!videoRef.current) return;
-        controls = await reader.decodeFromVideoDevice(
-          undefined,
+
+        // Request rear camera with high resolution and continuous autofocus.
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: {
+            facingMode: { ideal: "environment" },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+            // Non-standard but widely supported hints for better barcode scanning
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ...({ focusMode: "continuous", advanced: [{ focusMode: "continuous" }] } as any),
+          },
+        });
+
+        // Apply continuous-focus and other capabilities post-hoc if supported.
+        const track = stream.getVideoTracks()[0];
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const caps: any = track.getCapabilities?.() ?? {};
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const advanced: any[] = [];
+          if (Array.isArray(caps.focusMode) && caps.focusMode.includes("continuous")) {
+            advanced.push({ focusMode: "continuous" });
+          }
+          if (caps.exposureMode && caps.exposureMode.includes?.("continuous")) {
+            advanced.push({ exposureMode: "continuous" });
+          }
+          if (caps.whiteBalanceMode && caps.whiteBalanceMode.includes?.("continuous")) {
+            advanced.push({ whiteBalanceMode: "continuous" });
+          }
+          if (advanced.length) {
+            await track.applyConstraints({ advanced } as MediaTrackConstraints);
+          }
+        } catch {
+          // ignore — focus controls aren't available on this device
+        }
+
+        if (cancelled) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play().catch(() => {});
+
+        controls = await reader.decodeFromStream(
+          stream,
           videoRef.current,
           (result) => {
             if (cancelled) return;
@@ -53,8 +105,40 @@ export function BarcodeScanner({ onDetected, onClose }: Props) {
     return () => {
       cancelled = true;
       controls?.stop();
+      stream?.getTracks().forEach((t) => t.stop());
     };
   }, [onDetected]);
+
+  // Tap-to-focus: nudge the camera to refocus where the user taps.
+  async function handleTapFocus() {
+    const video = videoRef.current;
+    const stream = video?.srcObject as MediaStream | null;
+    const track = stream?.getVideoTracks?.()[0];
+    if (!track) return;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const caps: any = track.getCapabilities?.() ?? {};
+      if (Array.isArray(caps.focusMode) && caps.focusMode.includes("single-shot")) {
+        await track.applyConstraints({
+          advanced: [{ focusMode: "single-shot" }],
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any);
+        // Return to continuous after the single-shot lock.
+        setTimeout(() => {
+          if (caps.focusMode.includes("continuous")) {
+            track
+              .applyConstraints({
+                advanced: [{ focusMode: "continuous" }],
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              } as any)
+              .catch(() => {});
+          }
+        }, 800);
+      }
+    } catch {
+      // ignore
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-black/95">
@@ -72,12 +156,13 @@ export function BarcodeScanner({ onDetected, onClose }: Props) {
           <X className="h-5 w-5" />
         </Button>
       </div>
-      <div className="relative flex-1 overflow-hidden">
+      <div className="relative flex-1 overflow-hidden" onClick={handleTapFocus}>
         <video
           ref={videoRef}
           className="h-full w-full object-cover"
           playsInline
           muted
+          autoPlay
         />
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <div className="h-32 w-72 rounded-xl border-2 border-primary shadow-[0_0_0_9999px_rgba(0,0,0,0.45)]" />
@@ -89,7 +174,7 @@ export function BarcodeScanner({ onDetected, onClose }: Props) {
         )}
       </div>
       <p className="px-4 pb-6 pt-3 text-center text-xs text-white/70">
-        Hold steady so the ISBN barcode (usually on the back) fits inside the box.
+        Hold ~15&nbsp;cm away so the barcode fills the box. Tap the screen to refocus.
       </p>
     </div>
   );
