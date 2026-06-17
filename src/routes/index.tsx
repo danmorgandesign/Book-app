@@ -97,6 +97,7 @@ function Index() {
   const [coverScannerOpen, setCoverScannerOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [manualIsbn, setManualIsbn] = useState("");
+  const [pending, setPending] = useState<BookData | null>(null);
 
   async function loadBooks() {
     const { data, error } = await supabase
@@ -131,45 +132,8 @@ function Index() {
     };
   }, []);
 
-  async function handleIsbn(rawIsbn: string) {
-    setScannerOpen(false);
-    setBusy(true);
-    try {
-      const isbn = rawIsbn.replace(/[^0-9Xx]/g, "");
-      if (isbn.length !== 10 && isbn.length !== 13) {
-        toast.error("That doesn't look like a book barcode (ISBN-10/13).");
-        return;
-      }
-
-      const { data: existing } = await supabase
-        .from("books")
-        .select("title")
-        .eq("isbn", isbn)
-        .maybeSingle();
-      if (existing) {
-        toast(`Already on the shelf: ${existing.title}`);
-        return;
-      }
-
-      const book = await lookupBook(isbn);
-      if (!book) {
-        toast.error("Couldn't find that book. Try another edition?");
-        return;
-      }
-
-      const { error } = await supabase.from("books").insert(book);
-      if (error) {
-        toast.error(error.message);
-        return;
-      }
-      toast.success(`Added "${book.title}"`);
-      loadBooks();
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function insertBook(book: Awaited<ReturnType<typeof lookupBook>>) {
+  // Look up a book and, if it's new, stage it for the confirm step.
+  async function stageBook(book: BookData | null) {
     if (!book) return false;
     const { data: existing } = await supabase
       .from("books")
@@ -180,14 +144,28 @@ function Index() {
       toast(`Already on the shelf: ${existing.title}`);
       return true;
     }
-    const { error } = await supabase.from("books").insert(book);
-    if (error) {
-      toast.error(error.message);
-      return false;
-    }
-    toast.success(`Added "${book.title}"`);
-    loadBooks();
+    setPending(book);
     return true;
+  }
+
+  async function handleIsbn(rawIsbn: string) {
+    setScannerOpen(false);
+    setBusy(true);
+    try {
+      const isbn = rawIsbn.replace(/[^0-9Xx]/g, "");
+      if (isbn.length !== 10 && isbn.length !== 13) {
+        toast.error("That doesn't look like a book barcode (ISBN-10/13).");
+        return;
+      }
+      const book = await lookupBook(isbn);
+      if (!book) {
+        toast.error("Couldn't find that book. Try another edition?");
+        return;
+      }
+      await stageBook(book);
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function handleCover(imageBase64: string) {
@@ -199,16 +177,33 @@ function Index() {
         toast.error("Couldn't read the cover. Try better lighting or a closer shot.");
         return;
       }
-      // Prefer ISBN if the model returned one
       let book = id.isbn ? await lookupBook(id.isbn) : null;
       if (!book) book = await lookupBookByQuery(id.title, id.authors);
       if (!book) {
         toast.error(`Found "${id.title}" but no catalog match. Try the barcode instead.`);
         return;
       }
-      await insertBook(book);
+      await stageBook(book);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Cover scan failed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function saveConfirmed(book: BookData, category: string, subgenre: string) {
+    setBusy(true);
+    try {
+      const { error } = await supabase
+        .from("books")
+        .insert({ ...book, category, subgenre });
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      toast.success(`Added "${book.title}"`);
+      setPending(null);
+      loadBooks();
     } finally {
       setBusy(false);
     }
@@ -229,6 +224,14 @@ function Index() {
           onClose={() => setCoverScannerOpen(false)}
         />
       )}
+
+      <ConfirmBookDialog
+        book={pending}
+        busy={busy}
+        onCancel={() => setPending(null)}
+        onConfirm={saveConfirmed}
+      />
+
 
       <header className="mx-auto max-w-5xl px-6 pt-12 pb-8 sm:pt-20">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
