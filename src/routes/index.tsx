@@ -6,9 +6,24 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Toaster } from "@/components/ui/sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { CoverScanner } from "@/components/CoverScanner";
-import { lookupBook, lookupBookByQuery } from "@/lib/lookupBook";
+import { lookupBook, lookupBookByQuery, type BookData } from "@/lib/lookupBook";
 import { identifyCover } from "@/lib/identifyCover.functions";
 import { supabase } from "@/integrations/supabase/client";
 
