@@ -1,8 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { BookOpen, ArrowLeft, Loader2, Library } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { BookOpen, ArrowLeft, Loader2, Library, SlidersHorizontal } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export const Route = createFileRoute("/books")({
   head: () => ({
@@ -36,10 +43,42 @@ interface Book {
   created_at: string;
 }
 
+const SUBGENRES: Record<"Fiction" | "Non-Fiction", string[]> = {
+  Fiction: [
+    "Picture Book",
+    "Early Reader",
+    "Middle Grade",
+    "Young Adult",
+    "Literary",
+    "Mystery & Thriller",
+    "Sci-Fi & Fantasy",
+    "Historical",
+    "Romance",
+    "Graphic Novel",
+    "Poetry & Drama",
+  ],
+  "Non-Fiction": [
+    "Biography & Memoir",
+    "History",
+    "Science & Nature",
+    "Maths",
+    "Reference",
+    "Education & Teaching",
+    "Self-Help",
+    "Cookery",
+    "Art & Design",
+    "Travel",
+    "Religion & Philosophy",
+    "Sport",
+  ],
+};
+
 function BooksPage() {
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<"All" | "Fiction" | "Non-Fiction">("All");
+  const [subgenreFilter, setSubgenreFilter] = useState<string>("All");
 
   useEffect(() => {
     async function loadBooks() {
@@ -57,16 +96,26 @@ function BooksPage() {
     loadBooks();
   }, []);
 
+  const availableSubgenres = useMemo(() => {
+    if (categoryFilter === "All") return [];
+    return SUBGENRES[categoryFilter];
+  }, [categoryFilter]);
+
   const filtered = books.filter((b) => {
-    if (!filter) return true;
     const q = filter.toLowerCase();
-    return (
+    const matchesText =
+      !filter ||
       b.title.toLowerCase().includes(q) ||
       b.authors.some((a) => a.toLowerCase().includes(q)) ||
       (b.subgenre && b.subgenre.toLowerCase().includes(q)) ||
-      (b.isbn && b.isbn.includes(q))
-    );
+      (b.isbn && b.isbn.includes(q));
+    const matchesCategory = categoryFilter === "All" || b.category === categoryFilter;
+    const matchesSubgenre = subgenreFilter === "All" || b.subgenre === subgenreFilter;
+    return matchesText && matchesCategory && matchesSubgenre;
   });
+
+  const activeFilterCount =
+    (categoryFilter !== "All" ? 1 : 0) + (subgenreFilter !== "All" ? 1 : 0);
 
   return (
     <div className="min-h-screen">
@@ -92,15 +141,74 @@ function BooksPage() {
       </header>
 
       <main className="mx-auto max-w-5xl px-6 pb-24">
-        <div className="mb-6">
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row">
           <input
             type="text"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             placeholder="Search by title, author, genre, or ISBN…"
-            className="w-full rounded-lg border border-border bg-card px-4 py-3 text-sm outline-none ring-primary/20 transition-shadow placeholder:text-muted-foreground focus:ring-2"
+            className="flex-1 rounded-lg border border-border bg-card px-4 py-3 text-sm outline-none ring-primary/20 transition-shadow placeholder:text-muted-foreground focus:ring-2"
           />
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <SlidersHorizontal className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Select
+                value={categoryFilter}
+                onValueChange={(v) => {
+                  setCategoryFilter(v as "All" | "Fiction" | "Non-Fiction");
+                  setSubgenreFilter("All");
+                }}
+              >
+                <SelectTrigger className="w-40 pl-8 text-sm">
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All">All categories</SelectItem>
+                  <SelectItem value="Fiction">Fiction</SelectItem>
+                  <SelectItem value="Non-Fiction">Non-Fiction</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Select
+              value={subgenreFilter}
+              onValueChange={setSubgenreFilter}
+              disabled={categoryFilter === "All"}
+            >
+              <SelectTrigger className="w-44 text-sm">
+                <SelectValue
+                  placeholder={
+                    categoryFilter === "All" ? "Pick category first" : "Sub-genre"
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All sub-genres</SelectItem>
+                {availableSubgenres.map((g) => (
+                  <SelectItem key={g} value={g}>
+                    {g}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
+
+        {activeFilterCount > 0 && (
+          <div className="mb-4 flex items-center gap-2 text-xs text-muted-foreground">
+            <span>
+              Showing {filtered.length} of {books.length}
+            </span>
+            <button
+              onClick={() => {
+                setCategoryFilter("All");
+                setSubgenreFilter("All");
+              }}
+              className="underline-offset-2 hover:underline"
+            >
+              Clear filters
+            </button>
+          </div>
+        )}
 
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24">
