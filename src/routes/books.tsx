@@ -43,10 +43,42 @@ interface Book {
   created_at: string;
 }
 
+const SUBGENRES: Record<"Fiction" | "Non-Fiction", string[]> = {
+  Fiction: [
+    "Picture Book",
+    "Early Reader",
+    "Middle Grade",
+    "Young Adult",
+    "Literary",
+    "Mystery & Thriller",
+    "Sci-Fi & Fantasy",
+    "Historical",
+    "Romance",
+    "Graphic Novel",
+    "Poetry & Drama",
+  ],
+  "Non-Fiction": [
+    "Biography & Memoir",
+    "History",
+    "Science & Nature",
+    "Maths",
+    "Reference",
+    "Education & Teaching",
+    "Self-Help",
+    "Cookery",
+    "Art & Design",
+    "Travel",
+    "Religion & Philosophy",
+    "Sport",
+  ],
+};
+
 function BooksPage() {
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<"All" | "Fiction" | "Non-Fiction">("All");
+  const [subgenreFilter, setSubgenreFilter] = useState<string>("All");
 
   useEffect(() => {
     async function loadBooks() {
@@ -64,16 +96,26 @@ function BooksPage() {
     loadBooks();
   }, []);
 
+  const availableSubgenres = useMemo(() => {
+    if (categoryFilter === "All") return [];
+    return SUBGENRES[categoryFilter];
+  }, [categoryFilter]);
+
   const filtered = books.filter((b) => {
-    if (!filter) return true;
     const q = filter.toLowerCase();
-    return (
+    const matchesText =
+      !filter ||
       b.title.toLowerCase().includes(q) ||
       b.authors.some((a) => a.toLowerCase().includes(q)) ||
       (b.subgenre && b.subgenre.toLowerCase().includes(q)) ||
-      (b.isbn && b.isbn.includes(q))
-    );
+      (b.isbn && b.isbn.includes(q));
+    const matchesCategory = categoryFilter === "All" || b.category === categoryFilter;
+    const matchesSubgenre = subgenreFilter === "All" || b.subgenre === subgenreFilter;
+    return matchesText && matchesCategory && matchesSubgenre;
   });
+
+  const activeFilterCount =
+    (categoryFilter !== "All" ? 1 : 0) + (subgenreFilter !== "All" ? 1 : 0);
 
   return (
     <div className="min-h-screen">
