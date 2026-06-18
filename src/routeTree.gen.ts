@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UsersRouteImport } from './routes/users'
+import { Route as LoansRouteImport } from './routes/loans'
 import { Route as LoanRouteImport } from './routes/loan'
 import { Route as ClassesRouteImport } from './routes/classes'
 import { Route as BooksRouteImport } from './routes/books'
@@ -18,6 +19,11 @@ import { Route as IndexRouteImport } from './routes/index'
 const UsersRoute = UsersRouteImport.update({
   id: '/users',
   path: '/users',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoansRoute = LoansRouteImport.update({
+  id: '/loans',
+  path: '/loans',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoanRoute = LoanRouteImport.update({
@@ -46,6 +52,7 @@ export interface FileRoutesByFullPath {
   '/books': typeof BooksRoute
   '/classes': typeof ClassesRoute
   '/loan': typeof LoanRoute
+  '/loans': typeof LoansRoute
   '/users': typeof UsersRoute
 }
 export interface FileRoutesByTo {
@@ -53,6 +60,7 @@ export interface FileRoutesByTo {
   '/books': typeof BooksRoute
   '/classes': typeof ClassesRoute
   '/loan': typeof LoanRoute
+  '/loans': typeof LoansRoute
   '/users': typeof UsersRoute
 }
 export interface FileRoutesById {
@@ -61,14 +69,15 @@ export interface FileRoutesById {
   '/books': typeof BooksRoute
   '/classes': typeof ClassesRoute
   '/loan': typeof LoanRoute
+  '/loans': typeof LoansRoute
   '/users': typeof UsersRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/books' | '/classes' | '/loan' | '/users'
+  fullPaths: '/' | '/books' | '/classes' | '/loan' | '/loans' | '/users'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/books' | '/classes' | '/loan' | '/users'
-  id: '__root__' | '/' | '/books' | '/classes' | '/loan' | '/users'
+  to: '/' | '/books' | '/classes' | '/loan' | '/loans' | '/users'
+  id: '__root__' | '/' | '/books' | '/classes' | '/loan' | '/loans' | '/users'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -76,6 +85,7 @@ export interface RootRouteChildren {
   BooksRoute: typeof BooksRoute
   ClassesRoute: typeof ClassesRoute
   LoanRoute: typeof LoanRoute
+  LoansRoute: typeof LoansRoute
   UsersRoute: typeof UsersRoute
 }
 
@@ -86,6 +96,13 @@ declare module '@tanstack/react-router' {
       path: '/users'
       fullPath: '/users'
       preLoaderRoute: typeof UsersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/loans': {
+      id: '/loans'
+      path: '/loans'
+      fullPath: '/loans'
+      preLoaderRoute: typeof LoansRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/loan': {
@@ -124,6 +141,7 @@ const rootRouteChildren: RootRouteChildren = {
   BooksRoute: BooksRoute,
   ClassesRoute: ClassesRoute,
   LoanRoute: LoanRoute,
+  LoansRoute: LoansRoute,
   UsersRoute: UsersRoute,
 }
 export const routeTree = rootRouteImport
