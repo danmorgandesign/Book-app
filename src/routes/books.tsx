@@ -71,6 +71,7 @@ function BooksPage() {
       const { data, error } = await supabase
         .from("books")
         .select("*")
+        .eq("retired", false)
         .order("created_at", { ascending: false });
       if (error) {
         console.error(error);
