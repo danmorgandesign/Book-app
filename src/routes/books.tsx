@@ -109,6 +109,11 @@ function BooksPage() {
     setEditing(null);
   }
 
+  function handleRetired(id: string) {
+    setBooks((prev) => prev.filter((b) => b.id !== id));
+    setEditing(null);
+  }
+
   return (
     <div className="min-h-screen">
       <header className="mx-auto max-w-5xl px-6 pt-8 pb-4 sm:pt-14">
