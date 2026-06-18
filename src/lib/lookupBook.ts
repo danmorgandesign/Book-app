@@ -68,6 +68,67 @@ export async function lookupBook(rawIsbn: string): Promise<BookData | null> {
     // ignore
   }
 
+  // Third fallback: Open Library direct ISBN endpoint (often has records
+  // the bibkeys API misses, e.g. UK school editions).
+  try {
+    const res = await fetch(`https://openlibrary.org/isbn/${isbn}.json`);
+    if (res.ok) {
+      const data = await res.json();
+      // Resolve author names (stored as refs like { key: "/authors/OL..." })
+      const authorRefs: Array<{ key?: string }> = data.authors ?? [];
+      const authors = (
+        await Promise.all(
+          authorRefs.map(async (a) => {
+            if (!a?.key) return null;
+            try {
+              const r = await fetch(`https://openlibrary.org${a.key}.json`);
+              if (!r.ok) return null;
+              const j = await r.json();
+              return typeof j.name === "string" ? j.name : null;
+            } catch {
+              return null;
+            }
+          }),
+        )
+      ).filter((n): n is string => !!n);
+
+      const coverId: number | undefined = data.covers?.[0];
+      return {
+        isbn,
+        title: data.title ?? "Untitled",
+        authors,
+        cover_url: coverId
+          ? `https://covers.openlibrary.org/b/id/${coverId}-L.jpg`
+          : null,
+        publisher: Array.isArray(data.publishers) ? data.publishers.join(", ") : null,
+        published_date: data.publish_date ?? null,
+        page_count: data.number_of_pages ?? null,
+        description:
+          typeof data.description === "string"
+            ? data.description
+            : data.description?.value ?? null,
+      };
+    }
+  } catch {
+    // ignore
+  }
+
+  // Fourth fallback: Google Books plain ISBN query (catches records not
+  // indexed under the strict `isbn:` field operator).
+  try {
+    const res = await fetch(
+      `https://www.googleapis.com/books/v1/volumes?q=${isbn}`,
+    );
+    if (res.ok) {
+      const json = await res.json();
+      const item = json.items?.[0];
+      const book = fromGoogleVolume(item, isbn);
+      if (book) return book;
+    }
+  } catch {
+    // ignore
+  }
+
   return null;
 }
 
