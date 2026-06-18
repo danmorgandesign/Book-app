@@ -100,6 +100,10 @@ function Index() {
   const [busy, setBusy] = useState(false);
   const [manualIsbn, setManualIsbn] = useState("");
   const [pending, setPending] = useState<BookData | null>(null);
+  const [manualEntry, setManualEntry] = useState<
+    | { isbn: string; reason: "not-isbn" | "not-found"; rawCode?: string }
+    | null
+  >(null);
 
   async function loadBooks() {
     const { data, error } = await supabase
