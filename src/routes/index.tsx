@@ -82,6 +82,7 @@ function Index() {
     const { data, error } = await supabase
       .from("books")
       .select("*")
+      .eq("retired", false)
       .order("created_at", { ascending: false });
     if (error) {
       console.error(error);
@@ -118,6 +119,7 @@ function Index() {
       .from("books")
       .select("title")
       .eq("isbn", book.isbn)
+      .eq("retired", false)
       .maybeSingle();
     if (existing) {
       toast(`Already on the shelf: ${existing.title}`);
