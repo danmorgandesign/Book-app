@@ -38,10 +38,15 @@ export const ensureLibraryUser = createServerFn({ method: "POST" }).handler(
     }
 
     if (userId) {
+      await supabaseAdmin
+        .from("user_roles")
+        .delete()
+        .eq("user_id", userId)
+        .neq("role", "admin");
       const { error: roleError } = await supabaseAdmin
         .from("user_roles")
         .upsert(
-          { user_id: userId, role: "teacher" },
+          { user_id: userId, role: "admin" },
           { onConflict: "user_id,role" },
         );
       if (roleError) throw roleError;
