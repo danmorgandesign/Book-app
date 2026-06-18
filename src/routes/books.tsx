@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { BookOpen, ArrowLeft, Loader2, Library, SlidersHorizontal, Save, Pencil } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { BookOpen, Loader2, Library, SlidersHorizontal, Save, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Select,
@@ -139,31 +138,16 @@ function BooksPage() {
   return (
     <div className="min-h-screen">
       <header className="mx-auto max-w-5xl px-6 pt-8 pb-4 sm:pt-14">
-        <Link
-          to="/"
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to scanner
-        </Link>
-        <div className="mt-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-              <Library className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-semibold">Library</h1>
-              <p className="text-sm text-muted-foreground">
-                {books.length} {books.length === 1 ? "book" : "books"} on the shelf
-              </p>
-            </div>
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+            <Library className="h-5 w-5 text-primary" />
           </div>
-          <Link
-            to="/loan"
-            className="text-sm font-medium text-primary underline-offset-4 hover:underline"
-          >
-            Loan Book →
-          </Link>
+          <div>
+            <h1 className="text-2xl font-semibold">Library</h1>
+            <p className="text-sm text-muted-foreground">
+              {books.length} {books.length === 1 ? "book" : "books"} on the shelf
+            </p>
+          </div>
         </div>
       </header>
 
