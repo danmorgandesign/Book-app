@@ -60,6 +60,7 @@ interface Book {
   category: string | null;
   subgenre: string | null;
   created_at: string;
+  retired?: boolean;
 }
 
 import { SUBGENRES } from "@/lib/taxonomy";
