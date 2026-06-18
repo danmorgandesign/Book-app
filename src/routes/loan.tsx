@@ -54,14 +54,7 @@ function LoanPage() {
   return (
     <div className="min-h-screen">
       <header className="mx-auto max-w-5xl px-6 pt-8 pb-4 sm:pt-14">
-        <Link
-          to="/"
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to scanner
-        </Link>
-        <div className="mt-4 flex items-center gap-3">
+        <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
             <BookOpen className="h-5 w-5 text-primary" />
           </div>
