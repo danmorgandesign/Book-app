@@ -227,55 +227,85 @@ function BooksPage() {
             </p>
           </div>
         ) : (
-          <ul className="flex flex-col gap-3">
-            {filtered.map((book) => (
-              <li key={book.id}>
-                <div className="group flex w-full items-center gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-accent/40">
-                  <div className="h-16 w-11 flex-none overflow-hidden rounded bg-secondary">
-                    {book.cover_url ? (
-                      <img
-                        src={book.cover_url}
-                        alt={`Cover of ${book.title}`}
-                        className="h-full w-full object-cover"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center">
-                        <BookOpen className="h-5 w-5 opacity-40" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium leading-snug">
-                      {book.title}
-                    </p>
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                      {book.authors.join(", ") || "Unknown author"}
-                      {book.published_date ? ` · ${book.published_date}` : ""}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => setEditing(book)}
-                      className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-primary transition-colors hover:underline focus:outline-none"
-                    >
-                      <Pencil className="h-3 w-3" />
-                      Edit this Book
-                    </button>
-                  </div>
-                  <div className="flex flex-col items-end gap-1">
-                    {book.subgenre && (
-                      <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
-                        {book.subgenre}
+          <>
+            <ul className="flex flex-col gap-3">
+              {paginated.map((book) => (
+                <li key={book.id}>
+                  <div className="group flex w-full items-center gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-accent/40">
+                    <div className="h-16 w-11 flex-none overflow-hidden rounded bg-secondary">
+                      {book.cover_url ? (
+                        <img
+                          src={book.cover_url}
+                          alt={`Cover of ${book.title}`}
+                          className="h-full w-full object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center">
+                          <BookOpen className="h-5 w-5 opacity-40" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium leading-snug">
+                        {book.title}
+                      </p>
+                      <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                        {book.authors.join(", ") || "Unknown author"}
+                        {book.published_date ? ` · ${book.published_date}` : ""}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setEditing(book)}
+                        className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-primary transition-colors hover:underline focus:outline-none"
+                      >
+                        <Pencil className="h-3 w-3" />
+                        Edit this Book
+                      </button>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      {book.subgenre && (
+                        <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+                          {book.subgenre}
+                        </span>
+                      )}
+                      <span className="text-[10px] tabular-nums text-muted-foreground">
+                        {book.isbn}
                       </span>
-                    )}
-                    <span className="text-[10px] tabular-nums text-muted-foreground">
-                      {book.isbn}
-                    </span>
+                    </div>
                   </div>
+                </li>
+              ))}
+            </ul>
+
+            {totalPages > 1 && (
+              <div className="mt-6 flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">
+                  Page {page} of {totalPages} · {filtered.length} books
+                </span>
+                <div className="flex gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page <= 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Previous
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page >= totalPages}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
                 </div>
-              </li>
-            ))}
-          </ul>
+              </div>
+            )}
+          </>
         )}
       </main>
 
