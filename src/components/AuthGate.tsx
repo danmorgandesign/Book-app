@@ -10,6 +10,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [showLostPassword, setShowLostPassword] = useState(false);
 
   useEffect(() => {
     try {
