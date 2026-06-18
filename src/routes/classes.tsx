@@ -103,16 +103,39 @@ function ClassesPage() {
       </header>
 
       <main className="mx-auto max-w-5xl space-y-8 px-6 pb-24">
-        <form onSubmit={addClass} className="flex gap-2">
-          <Input
-            placeholder="New class name (e.g. Squirrels)"
-            value={newClass}
-            onChange={(e) => setNewClass(e.target.value)}
-          />
-          <Button type="submit" disabled={busy}>
+        <div className="flex justify-end">
+          <Button onClick={() => setAddOpen(true)}>
             <Plus className="mr-1 h-4 w-4" /> Add class
           </Button>
-        </form>
+        </div>
+
+        <Dialog open={addOpen} onOpenChange={setAddOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Add a class</DialogTitle>
+              <DialogDescription>
+                Create a new class for the library.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={addClass} className="grid gap-4 py-2">
+              <Input
+                placeholder="Class name (e.g. Squirrels)"
+                value={newClass}
+                onChange={(e) => setNewClass(e.target.value)}
+                autoFocus
+              />
+              <DialogFooter>
+                <Button type="button" variant="ghost" onClick={() => setAddOpen(false)} disabled={busy}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={busy || !newClass.trim()}>
+                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                  Add class
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
 
         {loading ? (
           <div className="flex justify-center py-12">
