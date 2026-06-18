@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode, type FormEvent } from "react";
 
 const STORAGE_KEY = "bathampton-auth";
-const USERNAME = "Bathampton";
+const USERNAME = "danmorgandesign@gmail.com";
 const PASSWORD = "morgan";
 
 export function AuthGate({ children }: { children: ReactNode }) {
@@ -73,12 +73,12 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
         <div className="space-y-2">
           <label htmlFor="username" className="text-sm font-medium text-foreground">
-            Username
+            Email
           </label>
           <input
             id="username"
-            type="text"
-            autoComplete="username"
+            type="email"
+            autoComplete="email"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
