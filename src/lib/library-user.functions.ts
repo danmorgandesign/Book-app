@@ -21,15 +21,32 @@ export const ensureLibraryUser = createServerFn({ method: "POST" }).handler(
     const existing = list.users.find(
       (u) => u.email?.toLowerCase() === LIBRARY_EMAIL.toLowerCase(),
     );
-    if (existing) return { ok: true, created: false };
 
-    const { error: createError } = await supabaseAdmin.auth.admin.createUser({
-      email: LIBRARY_EMAIL,
-      password: LIBRARY_PASSWORD,
-      email_confirm: true,
-    });
-    if (createError) throw createError;
+    let userId = existing?.id;
+    let created = false;
 
-    return { ok: true, created: true };
+    if (!userId) {
+      const { data: createData, error: createError } =
+        await supabaseAdmin.auth.admin.createUser({
+          email: LIBRARY_EMAIL,
+          password: LIBRARY_PASSWORD,
+          email_confirm: true,
+        });
+      if (createError) throw createError;
+      userId = createData.user?.id;
+      created = true;
+    }
+
+    if (userId) {
+      const { error: roleError } = await supabaseAdmin
+        .from("user_roles")
+        .upsert(
+          { user_id: userId, role: "teacher" },
+          { onConflict: "user_id,role" },
+        );
+      if (roleError) throw roleError;
+    }
+
+    return { ok: true, created };
   },
 );
