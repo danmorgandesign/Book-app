@@ -1,7 +1,13 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { BookOpen } from "lucide-react";
+import { BookOpen, ChevronDown, ScanLine } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export function NavBar() {
   const { location } = useRouterState();
@@ -24,14 +30,17 @@ export function NavBar() {
     };
   }, []);
 
-  const linkClass = (path: string) =>
+  const linkClass = (active: boolean) =>
     `text-sm font-medium underline-offset-4 hover:underline ${
-      current === path ? "text-foreground" : "text-muted-foreground"
+      active ? "text-foreground" : "text-muted-foreground"
     }`;
+
+  const libraryActive = current === "/books" || current === "/";
+  const adminActive = current === "/classes" || current === "/users";
 
   return (
     <nav className="border-b border-border bg-background">
-      <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
+      <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-4">
         <div className="flex items-center gap-2">
           <BookOpen className="h-5 w-5 text-primary" />
           <span className="text-sm font-semibold tracking-tight text-foreground">
@@ -39,23 +48,53 @@ export function NavBar() {
           </span>
         </div>
         <div className="flex items-center gap-6">
-          <Link to="/" className={linkClass("/")}>
-            Scanner
+          <Link to="/loans" className={linkClass(current === "/loans")}>
+            Loans
           </Link>
-          <Link to="/books" className={linkClass("/books")}>
-            Library
-          </Link>
-          <Link to="/loan" className={linkClass("/loan")}>
-            Loan Book
-          </Link>
-          <Link to="/classes" className={linkClass("/classes")}>
-            Manage Classes
-          </Link>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              className={`flex items-center gap-1 ${linkClass(libraryActive)}`}
+            >
+              Library
+              <ChevronDown className="h-3.5 w-3.5" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem asChild>
+                <Link to="/books">Search Books</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/">Add Book</Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           {isAdmin && (
-            <Link to="/users" className={linkClass("/users")}>
-              Users
-            </Link>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                className={`flex items-center gap-1 ${linkClass(adminActive)}`}
+              >
+                Admin
+                <ChevronDown className="h-3.5 w-3.5" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem asChild>
+                  <Link to="/classes">Manage Classes</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/users">Users</Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
+
+          <Link
+            to="/loan"
+            className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            <ScanLine className="h-4 w-4" />
+            Loan a Book
+          </Link>
         </div>
       </div>
     </nav>
