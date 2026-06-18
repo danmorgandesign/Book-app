@@ -13,11 +13,11 @@ export function NavBar() {
     (async () => {
       const { data: u } = await supabase.auth.getUser();
       if (!u.user) return;
-      const { data: ok } = await supabase.rpc("has_role", {
-        _user_id: u.user.id,
-        _role: "admin",
-      });
-      if (!cancelled) setIsAdmin(!!ok);
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", u.user.id);
+      if (!cancelled) setIsAdmin(!!roles?.some((r) => r.role === "admin"));
     })();
     return () => {
       cancelled = true;

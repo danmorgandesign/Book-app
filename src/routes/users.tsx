@@ -56,11 +56,11 @@ function UsersPage() {
         setLoading(false);
         return;
       }
-      const { data: ok } = await supabase.rpc("has_role", {
-        _user_id: uid,
-        _role: "admin",
-      });
-      const isAdmin = !!ok;
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", uid);
+      const isAdmin = !!roles?.some((r) => r.role === "admin");
       setAllowed(isAdmin);
       if (isAdmin) refresh();
       else setLoading(false);
