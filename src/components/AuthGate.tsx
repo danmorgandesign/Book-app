@@ -1,25 +1,32 @@
 import { useEffect, useState, type ReactNode, type FormEvent } from "react";
-
-const STORAGE_KEY = "bathampton-auth";
-const USERNAME = "danmorgandesign@gmail.com";
-const PASSWORD = "morgan";
+import { useServerFn } from "@tanstack/react-start";
+import { supabase } from "@/integrations/supabase/client";
+import { ensureLibraryUser } from "@/lib/library-user.functions";
 
 export function AuthGate({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [authed, setAuthed] = useState(false);
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [showLostPassword, setShowLostPassword] = useState(false);
+  const ensureUser = useServerFn(ensureLibraryUser);
 
   useEffect(() => {
-    try {
-      setAuthed(localStorage.getItem(STORAGE_KEY) === "1");
-    } catch {
-      /* ignore */
-    }
-    setReady(true);
-  }, []);
+    // Ensure the library account exists (idempotent, server-side).
+    ensureUser({}).catch((e) => console.error("ensureLibraryUser failed", e));
+
+    supabase.auth.getSession().then(({ data }) => {
+      setAuthed(!!data.session);
+      setReady(true);
+    });
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuthed(!!session);
+    });
+    return () => sub.subscription.unsubscribe();
+  }, [ensureUser]);
 
   if (!ready) return null;
 
@@ -29,12 +36,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
         {children}
         <button
           onClick={() => {
-            try {
-              localStorage.removeItem(STORAGE_KEY);
-            } catch {
-              /* ignore */
-            }
-            setAuthed(false);
+            supabase.auth.signOut();
           }}
           className="fixed bottom-4 right-4 z-50 rounded-md border border-input bg-background px-3 py-1.5 text-xs font-medium text-foreground shadow-sm hover:bg-accent"
         >
@@ -44,19 +46,24 @@ export function AuthGate({ children }: { children: ReactNode }) {
     );
   }
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (username.trim() === USERNAME && password === PASSWORD) {
-      try {
-        localStorage.setItem(STORAGE_KEY, "1");
-      } catch {
-        /* ignore */
-      }
-      setAuthed(true);
-      setError(null);
-    } else {
-      setError("Incorrect username or password.");
+    setSubmitting(true);
+    setError(null);
+    // Make sure the account exists before first sign-in attempt.
+    try {
+      await ensureUser({});
+    } catch {
+      /* non-fatal; sign-in will surface its own error */
     }
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+    if (signInError) {
+      setError("Incorrect email or password.");
+    }
+    setSubmitting(false);
   }
 
   return (
@@ -73,15 +80,15 @@ export function AuthGate({ children }: { children: ReactNode }) {
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="username" className="text-sm font-medium text-foreground">
+          <label htmlFor="email" className="text-sm font-medium text-foreground">
             Email
           </label>
           <input
-            id="username"
+            id="email"
             type="email"
             autoComplete="email"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
             required
           />
@@ -106,9 +113,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
         <button
           type="submit"
-          className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          disabled={submitting}
+          className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
         >
-          Sign in
+          {submitting ? "Signing in…" : "Sign in"}
         </button>
 
         <div className="text-center">
