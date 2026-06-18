@@ -26,7 +26,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
       setAuthed(isAuthed);
       setReady(true);
       if (isAuthed && window.location.pathname === "/") {
-        navigate({ to: "/loan" });
+        navigate({ to: "/loans" });
       }
     });
 
@@ -34,7 +34,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
       const isAuthed = !!session;
       setAuthed(isAuthed);
       if (isAuthed && window.location.pathname === "/") {
-        navigate({ to: "/loan" });
+        navigate({ to: "/loans" });
       }
     });
     return () => sub.subscription.unsubscribe();
