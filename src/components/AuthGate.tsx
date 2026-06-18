@@ -34,6 +34,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   if (authed) {
     return (
       <>
+        <NavBar />
         {children}
         <button
           onClick={() => {
