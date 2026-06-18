@@ -103,6 +103,13 @@ function BooksPage() {
     return matchesText && matchesCategory && matchesSubgenre;
   });
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  useEffect(() => {
+    setPage(1);
+  }, [filter, categoryFilter, subgenreFilter]);
+
   const activeFilterCount =
     (categoryFilter !== "All" ? 1 : 0) + (subgenreFilter !== "All" ? 1 : 0);
 
