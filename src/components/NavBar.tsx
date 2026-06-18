@@ -41,12 +41,12 @@ export function NavBar() {
   return (
     <nav className="border-b border-border bg-background">
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-4">
-        <div className="flex items-center gap-2">
+        <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <BookOpen className="h-5 w-5 text-primary" />
           <span className="text-sm font-semibold tracking-tight text-foreground">
             Bathampton Primary School Library
           </span>
-        </div>
+        </Link>
         <div className="flex items-center gap-6">
           <Link to="/loans" className={linkClass(current === "/loans")}>
             Loans
