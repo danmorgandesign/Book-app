@@ -1,9 +1,28 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { BookOpen } from "lucide-react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 export function NavBar() {
   const { location } = useRouterState();
   const current = location.pathname;
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) return;
+      const { data: ok } = await supabase.rpc("has_role", {
+        _user_id: u.user.id,
+        _role: "admin",
+      });
+      if (!cancelled) setIsAdmin(!!ok);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const linkClass = (path: string) =>
     `text-sm font-medium underline-offset-4 hover:underline ${
@@ -32,6 +51,11 @@ export function NavBar() {
           <Link to="/classes" className={linkClass("/classes")}>
             Manage Classes
           </Link>
+          {isAdmin && (
+            <Link to="/users" className={linkClass("/users")}>
+              Users
+            </Link>
+          )}
         </div>
       </div>
     </nav>
