@@ -24,6 +24,8 @@ import {
 import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { CoverScanner } from "@/components/CoverScanner";
 import { lookupBook, lookupBookByQuery, type BookData } from "@/lib/lookupBook";
+import { validateIsbn } from "@/lib/isbn";
+import { Textarea } from "@/components/ui/textarea";
 import { identifyCover } from "@/lib/identifyCover.functions";
 import { supabase } from "@/integrations/supabase/client";
 
