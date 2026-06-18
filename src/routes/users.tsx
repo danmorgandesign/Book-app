@@ -49,9 +49,15 @@ function UsersPage() {
   useEffect(() => {
     (async () => {
       const { data: u } = await supabase.auth.getUser();
-      setMeId(u.user?.id ?? null);
+      const uid = u.user?.id ?? null;
+      setMeId(uid);
+      if (!uid) {
+        setAllowed(false);
+        setLoading(false);
+        return;
+      }
       const { data: ok } = await supabase.rpc("has_role", {
-        _user_id: u.user?.id,
+        _user_id: uid,
         _role: "admin",
       });
       const isAdmin = !!ok;
