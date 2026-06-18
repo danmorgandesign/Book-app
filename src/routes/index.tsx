@@ -31,7 +31,7 @@ import { identifyCover } from "@/lib/identifyCover.functions";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Loan a Book — Bathampton Primary School Library" },
+      { title: "Loan a Book — Library Lite" },
       { name: "description", content: "Scan a book and loan it to a child." },
     ],
   }),

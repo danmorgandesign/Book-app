@@ -20,7 +20,7 @@ import {
 export const Route = createFileRoute("/classes")({
   head: () => ({
     meta: [
-      { title: "Manage Classes — Bathampton Primary School Library" },
+      { title: "Manage Classes — Library Lite" },
       { name: "description", content: "Manage classes and children for the library." },
     ],
   }),

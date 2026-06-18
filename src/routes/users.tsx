@@ -16,7 +16,7 @@ import {
 
 export const Route = createFileRoute("/users")({
   head: () => ({
-    meta: [{ title: "Users — Bathampton Primary School Library" }],
+    meta: [{ title: "Users — Library Lite" }],
   }),
   component: UsersPage,
 });
