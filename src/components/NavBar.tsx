@@ -13,6 +13,7 @@ export function NavBar() {
   const { location } = useRouterState();
   const current = location.pathname;
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isStaff, setIsStaff] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -23,7 +24,11 @@ export function NavBar() {
         .from("user_roles")
         .select("role")
         .eq("user_id", u.user.id);
-      if (!cancelled) setIsAdmin(!!roles?.some((r) => r.role === "admin"));
+      if (!cancelled) {
+        const list = roles?.map((r) => r.role) ?? [];
+        setIsAdmin(list.includes("admin"));
+        setIsStaff(list.includes("admin") || list.includes("teacher"));
+      }
     })();
     return () => {
       cancelled = true;
@@ -69,21 +74,23 @@ export function NavBar() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {isAdmin && (
+          {isStaff && (
             <DropdownMenu>
               <DropdownMenuTrigger
                 className={`flex items-center gap-1 ${linkClass(adminActive)}`}
               >
-                Admin
+                {isAdmin ? "Admin" : "Staff"}
                 <ChevronDown className="h-3.5 w-3.5" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start">
                 <DropdownMenuItem asChild>
                   <Link to="/classes">Manage Classes</Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/users">Users</Link>
-                </DropdownMenuItem>
+                {isAdmin && (
+                  <DropdownMenuItem asChild>
+                    <Link to="/users">Users</Link>
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           )}
