@@ -48,8 +48,8 @@ export function NavBar() {
           </span>
         </Link>
         <div className="flex items-center gap-6">
-          <Link to="/loans" className={linkClass(current === "/loans")}>
-            Loans
+          <Link to="/books-on-loan" className={linkClass(current === "/books-on-loan")}>
+            Books on Loan
           </Link>
 
           <DropdownMenu>

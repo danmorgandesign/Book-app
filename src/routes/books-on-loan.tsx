@@ -13,14 +13,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export const Route = createFileRoute("/loans")({
+export const Route = createFileRoute("/books-on-loan")({
   head: () => ({
     meta: [
-      { title: "Loans — Bathampton Primary School Library" },
+      { title: "Books on Loan — Bathampton Primary School Library" },
       { name: "description", content: "Current loans, filterable by class." },
     ],
   }),
-  component: LoansPage,
+  component: BooksOnLoanPage,
 });
 
 interface LoanRow {
@@ -34,7 +34,7 @@ interface ClassRow {
   name: string;
 }
 
-function LoansPage() {
+function BooksOnLoanPage() {
   const [loans, setLoans] = useState<LoanRow[]>([]);
   const [classes, setClasses] = useState<ClassRow[]>([]);
   const [classFilter, setClassFilter] = useState<string>("all");
