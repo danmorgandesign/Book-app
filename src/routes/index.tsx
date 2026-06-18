@@ -62,35 +62,7 @@ interface Book {
   created_at: string;
 }
 
-const SUBGENRES: Record<"Fiction" | "Non-Fiction", string[]> = {
-  Fiction: [
-    "Picture Book",
-    "Early Reader",
-    "Middle Grade",
-    "Young Adult",
-    "Literary",
-    "Mystery & Thriller",
-    "Sci-Fi & Fantasy",
-    "Historical",
-    "Romance",
-    "Graphic Novel",
-    "Poetry & Drama",
-  ],
-  "Non-Fiction": [
-    "Biography & Memoir",
-    "History",
-    "Science & Nature",
-    "Maths",
-    "Reference",
-    "Education & Teaching",
-    "Self-Help",
-    "Cookery",
-    "Art & Design",
-    "Travel",
-    "Religion & Philosophy",
-    "Sport",
-  ],
-};
+import { SUBGENRES } from "@/lib/taxonomy";
 
 
 function Index() {
