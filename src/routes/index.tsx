@@ -239,12 +239,20 @@ function Index() {
             <BookOpen className="h-4 w-4" />
             <span className="tracking-wide uppercase">Shelfscan</span>
           </div>
-          <Link
-            to="/books"
-            className="text-sm font-medium text-primary underline-offset-4 hover:underline"
-          >
-            View library →
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link
+              to="/loan"
+              className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+            >
+              Loan Book →
+            </Link>
+            <Link
+              to="/books"
+              className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+            >
+              View library →
+            </Link>
+          </div>
         </div>
         <h1 className="mt-4 text-5xl font-semibold leading-[1.05] sm:text-6xl">
           Every book,<br />
