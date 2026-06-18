@@ -25,17 +25,11 @@ export function AuthGate({ children }: { children: ReactNode }) {
       const isAuthed = !!data.session;
       setAuthed(isAuthed);
       setReady(true);
-      if (isAuthed && window.location.pathname === "/") {
-        navigate({ to: "/books-on-loan" });
-      }
     });
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       const isAuthed = !!session;
       setAuthed(isAuthed);
-      if (isAuthed && window.location.pathname === "/") {
-        navigate({ to: "/books-on-loan" });
-      }
     });
     return () => sub.subscription.unsubscribe();
   }, [ensureUser, navigate]);

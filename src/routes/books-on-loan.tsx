@@ -97,7 +97,7 @@ function BooksOnLoanPage() {
             </div>
           </div>
           <Button asChild size="lg" className="h-12 gap-2 px-5 text-base">
-            <Link to="/loan">
+            <Link to="/">
               <ScanLine className="h-5 w-5" />
               Loan a Book
             </Link>

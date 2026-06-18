@@ -35,7 +35,7 @@ export function NavBar() {
       active ? "text-foreground" : "text-muted-foreground"
     }`;
 
-  const libraryActive = current === "/books" || current === "/";
+  const libraryActive = current === "/books" || current === "/add";
   const adminActive = current === "/classes" || current === "/users";
 
   return (
@@ -64,7 +64,7 @@ export function NavBar() {
                 <Link to="/books">Search Books</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to="/">Add Book</Link>
+                <Link to="/add">Add Book</Link>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -89,7 +89,7 @@ export function NavBar() {
           )}
 
           <Link
-            to="/loan"
+            to="/"
             className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
             <ScanLine className="h-4 w-4" />

@@ -10,7 +10,6 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UsersRouteImport } from './routes/users'
-import { Route as LoanRouteImport } from './routes/loan'
 import { Route as ClassesRouteImport } from './routes/classes'
 import { Route as BooksOnLoanRouteImport } from './routes/books-on-loan'
 import { Route as BooksRouteImport } from './routes/books'
@@ -20,11 +19,6 @@ import { Route as IndexRouteImport } from './routes/index'
 const UsersRoute = UsersRouteImport.update({
   id: '/users',
   path: '/users',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoanRoute = LoanRouteImport.update({
-  id: '/loan',
-  path: '/loan',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ClassesRoute = ClassesRouteImport.update({
@@ -59,7 +53,6 @@ export interface FileRoutesByFullPath {
   '/books': typeof BooksRoute
   '/books-on-loan': typeof BooksOnLoanRoute
   '/classes': typeof ClassesRoute
-  '/loan': typeof LoanRoute
   '/users': typeof UsersRoute
 }
 export interface FileRoutesByTo {
@@ -68,7 +61,6 @@ export interface FileRoutesByTo {
   '/books': typeof BooksRoute
   '/books-on-loan': typeof BooksOnLoanRoute
   '/classes': typeof ClassesRoute
-  '/loan': typeof LoanRoute
   '/users': typeof UsersRoute
 }
 export interface FileRoutesById {
@@ -78,28 +70,13 @@ export interface FileRoutesById {
   '/books': typeof BooksRoute
   '/books-on-loan': typeof BooksOnLoanRoute
   '/classes': typeof ClassesRoute
-  '/loan': typeof LoanRoute
   '/users': typeof UsersRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/add'
-    | '/books'
-    | '/books-on-loan'
-    | '/classes'
-    | '/loan'
-    | '/users'
+  fullPaths: '/' | '/add' | '/books' | '/books-on-loan' | '/classes' | '/users'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/add'
-    | '/books'
-    | '/books-on-loan'
-    | '/classes'
-    | '/loan'
-    | '/users'
+  to: '/' | '/add' | '/books' | '/books-on-loan' | '/classes' | '/users'
   id:
     | '__root__'
     | '/'
@@ -107,7 +84,6 @@ export interface FileRouteTypes {
     | '/books'
     | '/books-on-loan'
     | '/classes'
-    | '/loan'
     | '/users'
   fileRoutesById: FileRoutesById
 }
@@ -117,7 +93,6 @@ export interface RootRouteChildren {
   BooksRoute: typeof BooksRoute
   BooksOnLoanRoute: typeof BooksOnLoanRoute
   ClassesRoute: typeof ClassesRoute
-  LoanRoute: typeof LoanRoute
   UsersRoute: typeof UsersRoute
 }
 
@@ -128,13 +103,6 @@ declare module '@tanstack/react-router' {
       path: '/users'
       fullPath: '/users'
       preLoaderRoute: typeof UsersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/loan': {
-      id: '/loan'
-      path: '/loan'
-      fullPath: '/loan'
-      preLoaderRoute: typeof LoanRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/classes': {
@@ -181,7 +149,6 @@ const rootRouteChildren: RootRouteChildren = {
   BooksRoute: BooksRoute,
   BooksOnLoanRoute: BooksOnLoanRoute,
   ClassesRoute: ClassesRoute,
-  LoanRoute: LoanRoute,
   UsersRoute: UsersRoute,
 }
 export const routeTree = rootRouteImport
