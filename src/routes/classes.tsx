@@ -45,6 +45,7 @@ function ClassesPage() {
   const [newClass, setNewClass] = useState("");
   const [busy, setBusy] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [classFilter, setClassFilter] = useState<string>("all");
 
   async function load() {
     const [c, ch] = await Promise.all([
