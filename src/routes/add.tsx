@@ -1,21 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import {
-  BookOpen,
-  Loader2,
-  ScanLine,
-  Camera,
-  Search,
-  Check,
-  X,
-  RotateCcw,
-} from "lucide-react";
+import { ScanLine, BookOpen, Loader2, Search, Camera } from "lucide-react";
 import { toast } from "sonner";
 
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Toaster } from "@/components/ui/sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -26,135 +24,136 @@ import {
 import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { CoverScanner } from "@/components/CoverScanner";
 import { lookupBook, lookupBookByQuery, type BookData } from "@/lib/lookupBook";
+import { validateIsbn } from "@/lib/isbn";
+import { Textarea } from "@/components/ui/textarea";
 import { identifyCover } from "@/lib/identifyCover.functions";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/add")({
   head: () => ({
     meta: [
-      { title: "Loan a Book — Bathampton Primary School Library" },
-      { name: "description", content: "Scan a book and loan it to a child." },
+      { title: "Shelfscan — Scan books into a shared library" },
+      {
+        name: "description",
+        content:
+          "Point your phone at a book's barcode and watch it appear in a beautiful shared catalog. No login required.",
+      },
+      { property: "og:title", content: "Shelfscan" },
+      {
+        property: "og:description",
+        content: "Scan ISBN barcodes with your phone to build a shared book catalog.",
+      },
     ],
   }),
-  component: LoanPage,
+  component: AddPage,
 });
 
-import { SUBGENRES } from "@/lib/taxonomy";
-
-interface DbBook {
+interface Book {
   id: string;
   isbn: string;
   title: string;
   authors: string[];
   cover_url: string | null;
-}
-interface ClassRow {
-  id: string;
-  name: string;
-}
-interface ChildRow {
-  id: string;
-  class_id: string;
-  first_name: string;
-  last_initial: string | null;
+  publisher: string | null;
+  published_date: string | null;
+  page_count: number | null;
+  category: string | null;
+  subgenre: string | null;
+  created_at: string;
+  retired?: boolean;
 }
 
-type Step =
-  | "scan"
-  | "confirm-book"
-  | "add-to-collection"
-  | "choose-class"
-  | "choose-child"
-  | "confirm-loan"
-  | "done";
+import { SUBGENRES } from "@/lib/taxonomy";
 
-function LoanPage() {
-  const [step, setStep] = useState<Step>("scan");
+
+function AddPage() {
+  const [books, setBooks] = useState<Book[]>([]);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [coverScannerOpen, setCoverScannerOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [manualIsbn, setManualIsbn] = useState("");
+  const [pending, setPending] = useState<BookData | null>(null);
+  const [manualEntry, setManualEntry] = useState<
+    | { isbn: string; reason: "not-isbn" | "not-found"; rawCode?: string }
+    | null
+  >(null);
 
-  // book in play (either found in DB or newly looked up)
-  const [foundBook, setFoundBook] = useState<DbBook | null>(null);
-  const [pendingNew, setPendingNew] = useState<BookData | null>(null);
-
-  // class / child selection
-  const [classes, setClasses] = useState<ClassRow[]>([]);
-  const [children, setChildren] = useState<ChildRow[]>([]);
-  const [selectedClass, setSelectedClass] = useState<string>("");
-  const [selectedChild, setSelectedChild] = useState<string>("");
-
-  // existing active loan info (if book already on loan)
-  const [activeLoan, setActiveLoan] = useState<{
-    id: string;
-    child_id: string;
-  } | null>(null);
-
-  useEffect(() => {
-    (async () => {
-      const [c, ch] = await Promise.all([
-        supabase.from("classes").select("*").order("name"),
-        supabase.from("children").select("*").order("first_name"),
-      ]);
-      if (c.data) setClasses(c.data as ClassRow[]);
-      if (ch.data) setChildren(ch.data as ChildRow[]);
-    })();
-  }, []);
-
-  function reset() {
-    setStep("scan");
-    setFoundBook(null);
-    setPendingNew(null);
-    setSelectedClass("");
-    setSelectedChild("");
-    setActiveLoan(null);
-  }
-
-  async function processIsbn(rawIsbn: string) {
-    const isbn = rawIsbn.replace(/[^0-9Xx]/g, "");
-    if (isbn.length !== 10 && isbn.length !== 13) {
-      toast.error("That doesn't look like a book barcode.");
+  async function loadBooks() {
+    const { data, error } = await supabase
+      .from("books")
+      .select("*")
+      .eq("retired", false)
+      .order("created_at", { ascending: false });
+    if (error) {
+      console.error(error);
       return;
     }
+    setBooks(data as Book[]);
+  }
+
+  useEffect(() => {
+    loadBooks();
+    const channel = supabase
+      .channel("books-feed")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "books" },
+        (payload) => {
+          setBooks((prev) => {
+            const next = payload.new as Book;
+            if (prev.some((b) => b.id === next.id)) return prev;
+            return [next, ...prev];
+          });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  // Look up a book and, if it's new, stage it for the confirm step.
+  async function stageBook(book: BookData | null) {
+    if (!book) return false;
+    const { data: existing } = await supabase
+      .from("books")
+      .select("title")
+      .eq("isbn", book.isbn)
+      .eq("retired", false)
+      .maybeSingle();
+    if (existing) {
+      toast(`Already on the shelf: ${existing.title}`);
+      return true;
+    }
+    setPending(book);
+    return true;
+  }
+
+  async function handleIsbn(rawCode: string) {
+    setScannerOpen(false);
     setBusy(true);
     try {
-      // Check if already in our library
-      const { data: existing } = await supabase
-        .from("books")
-        .select("id,isbn,title,authors,cover_url")
-        .eq("isbn", isbn)
-        .eq("retired", false)
-        .maybeSingle();
-      if (existing) {
-        const eBook = existing as DbBook;
-        setFoundBook(eBook);
-        // check active loan
-        const { data: loan } = await supabase
-          .from("loans")
-          .select("id,child_id")
-          .eq("book_id", eBook.id)
-          .is("returned_at", null)
-          .maybeSingle();
-        setActiveLoan(loan ?? null);
-        setStep("confirm-book");
+      const check = validateIsbn(rawCode);
+      if (!check.ok) {
+        // Not a real ISBN — e.g. a UK price sticker or school accession label.
+        toast.error("That barcode isn't an ISBN. Enter the book details manually.");
+        setManualEntry({
+          isbn: check.cleaned,
+          reason: "not-isbn",
+          rawCode,
+        });
         return;
       }
-      // Not in DB — look up externally
-      const book = await lookupBook(isbn);
+      const book = await lookupBook(check.isbn);
       if (!book) {
-        toast.error("Couldn't find that book. Try another edition?");
+        toast.error("Couldn't find that ISBN online. Enter the details manually.");
+        setManualEntry({ isbn: check.isbn, reason: "not-found" });
         return;
       }
-      setPendingNew(book);
-      setStep("add-to-collection");
+      await stageBook(book);
     } finally {
       setBusy(false);
     }
-  }
-
-  async function handleIsbn(raw: string) {
-    setScannerOpen(false);
-    await processIsbn(raw);
   }
 
   async function handleCover(imageBase64: string) {
@@ -163,17 +162,16 @@ function LoanPage() {
     try {
       const id = await identifyCover({ data: { imageBase64 } });
       if (!id || !id.title) {
-        toast.error("Couldn't read the cover. Try better lighting.");
+        toast.error("Couldn't read the cover. Try better lighting or a closer shot.");
         return;
       }
       let book = id.isbn ? await lookupBook(id.isbn) : null;
       if (!book) book = await lookupBookByQuery(id.title, id.authors);
       if (!book) {
-        toast.error(`Found "${id.title}" but no catalog match. Try the barcode.`);
+        toast.error(`Found "${id.title}" but no catalog match. Try the barcode instead.`);
         return;
       }
-      // Reuse processIsbn path for db check
-      await processIsbn(book.isbn);
+      await stageBook(book);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Cover scan failed.");
     } finally {
@@ -181,72 +179,23 @@ function LoanPage() {
     }
   }
 
-  async function addToCollection(
-    book: BookData,
-    category: string,
-    subgenre: string,
-  ) {
-    setBusy(true);
-    try {
-      const { data, error } = await supabase
-        .from("books")
-        .insert({ ...book, category, subgenre })
-        .select("id,isbn,title,authors,cover_url")
-        .single();
-      if (error || !data) {
-        toast.error(error?.message ?? "Could not add book.");
-        return;
-      }
-      toast.success(`Added "${book.title}"`);
-      setFoundBook(data as DbBook);
-      setPendingNew(null);
-      setActiveLoan(null);
-      setStep("choose-class");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function confirmLoan() {
-    if (!foundBook || !selectedChild) return;
-    setBusy(true);
-    try {
-      const { error } = await supabase.from("loans").insert({
-        book_id: foundBook.id,
-        child_id: selectedChild,
-      });
-      if (error) {
-        toast.error(error.message);
-        return;
-      }
-      setStep("done");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function returnActive() {
-    if (!activeLoan) return;
+  async function saveConfirmed(book: BookData, category: string, subgenre: string) {
     setBusy(true);
     try {
       const { error } = await supabase
-        .from("loans")
-        .update({ returned_at: new Date().toISOString() })
-        .eq("id", activeLoan.id);
+        .from("books")
+        .insert({ ...book, category, subgenre });
       if (error) {
         toast.error(error.message);
         return;
       }
-      toast.success("Book returned");
-      setActiveLoan(null);
+      toast.success(`Added "${book.title}"`);
+      setPending(null);
+      loadBooks();
     } finally {
       setBusy(false);
     }
   }
-
-  const filteredChildren = children.filter((c) => c.class_id === selectedClass);
-  const childById = new Map(children.map((c) => [c.id, c]));
-  const classById = new Map(classes.map((c) => [c.id, c]));
 
   return (
     <div className="min-h-screen">
@@ -264,564 +213,444 @@ function LoanPage() {
         />
       )}
 
-      <header className="mx-auto max-w-3xl px-6 pt-8 pb-4 sm:pt-14">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-            <BookOpen className="h-5 w-5 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-semibold">Loan a Book</h1>
-            <p className="text-sm text-muted-foreground">
-              Scan a book, then pick the child borrowing it.
-            </p>
-          </div>
+      <ConfirmBookDialog
+        book={pending}
+        busy={busy}
+        onCancel={() => setPending(null)}
+        onConfirm={saveConfirmed}
+      />
+
+      <ManualEntryDialog
+        entry={manualEntry}
+        onCancel={() => setManualEntry(null)}
+        onSubmit={(book) => {
+          setManualEntry(null);
+          stageBook(book);
+        }}
+      />
+
+
+      <header className="mx-auto max-w-5xl px-6 pt-12 pb-8 sm:pt-20">
+        <h1 className="mt-4 text-5xl font-semibold leading-[1.05] sm:text-6xl">
+          Every book,<br />
+          <span className="text-primary italic">one scan</span> away.
+        </h1>
+        <p className="mt-5 max-w-xl text-lg text-muted-foreground">
+          Scan a book's barcode — or snap its front cover — and we'll add it to
+          the shared shelf. No account, no fuss.
+        </p>
+
+        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+          <Button
+            size="lg"
+            onClick={() => setScannerOpen(true)}
+            disabled={busy}
+            className="h-14 gap-2 px-6 text-base"
+          >
+            {busy ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <ScanLine className="h-5 w-5" />
+            )}
+            Scan barcode
+          </Button>
+          <Button
+            size="lg"
+            variant="secondary"
+            onClick={() => setCoverScannerOpen(true)}
+            disabled={busy}
+            className="h-14 gap-2 px-6 text-base"
+          >
+            <Camera className="h-5 w-5" />
+            Scan front cover
+          </Button>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (manualIsbn.trim()) {
+                handleIsbn(manualIsbn.trim());
+                setManualIsbn("");
+              }
+            }}
+            className="flex flex-1 gap-2"
+          >
+            <Input
+              value={manualIsbn}
+              onChange={(e) => setManualIsbn(e.target.value)}
+              placeholder="…or type an ISBN"
+              className="h-14 bg-card text-base"
+              inputMode="numeric"
+            />
+            <Button
+              type="submit"
+              variant="secondary"
+              size="lg"
+              className="h-14"
+              disabled={busy}
+            >
+              <Search className="h-5 w-5" />
+            </Button>
+          </form>
         </div>
-        <StepBar step={step} />
       </header>
 
-      <main className="mx-auto max-w-3xl px-6 pb-24">
-        {step === "scan" && (
-          <ScanStep
-            busy={busy}
-            manualIsbn={manualIsbn}
-            setManualIsbn={setManualIsbn}
-            onScanBarcode={() => setScannerOpen(true)}
-            onScanCover={() => setCoverScannerOpen(true)}
-            onManual={(v) => processIsbn(v)}
-          />
-        )}
+      <main className="mx-auto max-w-5xl px-6 pb-24">
+        <div className="mb-6 flex items-baseline justify-between border-b border-border pb-3">
+          <h2 className="text-2xl font-semibold">The shelf</h2>
+          <span className="text-sm text-muted-foreground">
+            {books.length} {books.length === 1 ? "book" : "books"}
+          </span>
+        </div>
 
-        {step === "confirm-book" && foundBook && (
-          <ConfirmBookStep
-            book={foundBook}
-            activeLoanChildName={
-              activeLoan
-                ? (() => {
-                    const c = childById.get(activeLoan.child_id);
-                    return c
-                      ? `${c.first_name}${c.last_initial ? ` ${c.last_initial}.` : ""}`
-                      : "another child";
-                  })()
-                : null
-            }
-            busy={busy}
-            onYes={() => setStep("choose-class")}
-            onNo={reset}
-            onReturn={returnActive}
-          />
-        )}
-
-        {step === "add-to-collection" && pendingNew && (
-          <AddToCollectionStep
-            book={pendingNew}
-            busy={busy}
-            onCancel={reset}
-            onConfirm={addToCollection}
-          />
-        )}
-
-        {step === "choose-class" && (
-          <ChoosePersonStep
-            title="Choose a class"
-            options={classes.map((c) => ({ id: c.id, label: c.name }))}
-            value={selectedClass}
-            onChange={(v) => {
-              setSelectedClass(v);
-              setSelectedChild("");
-            }}
-            onBack={() => setStep("confirm-book")}
-            onNext={() => setStep("choose-child")}
-            emptyHint="No classes yet — add one on Manage Classes."
-          />
-        )}
-
-        {step === "choose-child" && (
-          <ChoosePersonStep
-            title="Choose a child"
-            options={filteredChildren.map((c) => ({
-              id: c.id,
-              label: `${c.first_name}${c.last_initial ? ` ${c.last_initial}.` : ""}`,
-            }))}
-            value={selectedChild}
-            onChange={setSelectedChild}
-            onBack={() => setStep("choose-class")}
-            onNext={() => setStep("confirm-loan")}
-            emptyHint="No children in that class yet."
-          />
-        )}
-
-        {step === "confirm-loan" && foundBook && (
-          <ConfirmLoanStep
-            book={foundBook}
-            className={classById.get(selectedClass)?.name ?? ""}
-            childName={(() => {
-              const c = childById.get(selectedChild);
-              return c
-                ? `${c.first_name}${c.last_initial ? ` ${c.last_initial}.` : ""}`
-                : "";
-            })()}
-            busy={busy}
-            onBack={() => setStep("choose-child")}
-            onConfirm={confirmLoan}
-          />
-        )}
-
-        {step === "done" && foundBook && (
-          <DoneStep
-            book={foundBook}
-            childName={(() => {
-              const c = childById.get(selectedChild);
-              return c
-                ? `${c.first_name}${c.last_initial ? ` ${c.last_initial}.` : ""}`
-                : "";
-            })()}
-            onAnother={reset}
-          />
+        {books.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <ul className="grid grid-cols-2 gap-x-5 gap-y-10 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+            {books.map((book) => (
+              <BookCard key={book.id} book={book} />
+            ))}
+          </ul>
         )}
       </main>
     </div>
   );
 }
 
-function StepBar({ step }: { step: Step }) {
-  const labels: { key: Step; label: string }[] = [
-    { key: "scan", label: "Scan" },
-    { key: "confirm-book", label: "Confirm" },
-    { key: "choose-class", label: "Class" },
-    { key: "choose-child", label: "Child" },
-    { key: "confirm-loan", label: "Loan" },
-  ];
-  const idx = (() => {
-    if (step === "add-to-collection") return 1;
-    if (step === "done") return 4;
-    return labels.findIndex((l) => l.key === step);
-  })();
+function BookCard({ book }: { book: Book }) {
   return (
-    <ol className="mt-6 flex flex-wrap items-center gap-2 text-xs">
-      {labels.map((l, i) => {
-        const active = i === idx;
-        const done = i < idx;
-        return (
-          <li key={l.key} className="flex items-center gap-2">
-            <span
-              className={`flex h-6 w-6 items-center justify-center rounded-full border ${
-                active
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : done
-                    ? "border-primary/50 bg-primary/10 text-primary"
-                    : "border-border text-muted-foreground"
-              }`}
-            >
-              {done ? <Check className="h-3 w-3" /> : i + 1}
-            </span>
-            <span
-              className={
-                active
-                  ? "font-medium"
-                  : done
-                    ? "text-primary"
-                    : "text-muted-foreground"
-              }
-            >
-              {l.label}
-            </span>
-            {i < labels.length - 1 && (
-              <span className="mx-1 text-muted-foreground/40">→</span>
-            )}
-          </li>
-        );
-      })}
-    </ol>
-  );
-}
-
-function ScanStep({
-  busy,
-  manualIsbn,
-  setManualIsbn,
-  onScanBarcode,
-  onScanCover,
-  onManual,
-}: {
-  busy: boolean;
-  manualIsbn: string;
-  setManualIsbn: (v: string) => void;
-  onScanBarcode: () => void;
-  onScanCover: () => void;
-  onManual: (v: string) => void;
-}) {
-  return (
-    <section className="rounded-2xl border border-border bg-card p-6">
-      <h2 className="text-lg font-semibold">Scan the book</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Use the barcode for the most reliable match, or snap the front cover.
-      </p>
-      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-        <Button
-          size="lg"
-          onClick={onScanBarcode}
-          disabled={busy}
-          className="h-14 gap-2 px-6 text-base"
-        >
-          {busy ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
-          ) : (
-            <ScanLine className="h-5 w-5" />
-          )}
-          Scan barcode
-        </Button>
-        <Button
-          size="lg"
-          variant="secondary"
-          onClick={onScanCover}
-          disabled={busy}
-          className="h-14 gap-2 px-6 text-base"
-        >
-          <Camera className="h-5 w-5" />
-          Scan front cover
-        </Button>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (manualIsbn.trim()) {
-              onManual(manualIsbn.trim());
-              setManualIsbn("");
-            }
-          }}
-          className="flex flex-1 gap-2"
-        >
-          <Input
-            value={manualIsbn}
-            onChange={(e) => setManualIsbn(e.target.value)}
-            placeholder="…or type an ISBN"
-            className="h-14 bg-background text-base"
-            inputMode="numeric"
-          />
-          <Button
-            type="submit"
-            variant="secondary"
-            size="lg"
-            className="h-14"
-            disabled={busy}
-          >
-            <Search className="h-5 w-5" />
-          </Button>
-        </form>
-      </div>
-    </section>
-  );
-}
-
-function BookCard({
-  title,
-  authors,
-  cover_url,
-}: {
-  title: string;
-  authors: string[];
-  cover_url: string | null;
-}) {
-  return (
-    <div className="flex gap-4">
-      <div className="aspect-[2/3] w-24 flex-none overflow-hidden rounded bg-secondary">
-        {cover_url ? (
+    <li className="group flex flex-col gap-3">
+      <div className="relative aspect-[2/3] overflow-hidden rounded-md bg-secondary shadow-[0_10px_30px_-12px_rgba(60,30,10,0.4)] transition-transform duration-300 group-hover:-translate-y-1">
+        {book.cover_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={cover_url}
-            alt={`Cover of ${title}`}
+            src={book.cover_url}
+            alt={`Cover of ${book.title}`}
             className="h-full w-full object-cover"
+            loading="lazy"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <BookOpen className="h-6 w-6 opacity-40" />
+          <div className="flex h-full w-full items-center justify-center p-3 text-center text-xs text-muted-foreground">
+            <BookOpen className="h-8 w-8 opacity-40" />
           </div>
         )}
       </div>
-      <div className="min-w-0 flex-1">
-        <p className="font-semibold leading-snug">{title}</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {authors.join(", ") || "Unknown author"}
+      <div>
+        <p className="line-clamp-2 text-sm font-medium leading-snug">{book.title}</p>
+        <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
+          {book.authors.join(", ") || "Unknown author"}
         </p>
+        {book.subgenre && (
+          <p className="mt-1.5 inline-block rounded-full bg-secondary px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+            {book.subgenre}
+          </p>
+        )}
       </div>
-    </div>
+    </li>
   );
 }
 
-function ConfirmBookStep({
-  book,
-  activeLoanChildName,
-  busy,
-  onYes,
-  onNo,
-  onReturn,
-}: {
-  book: DbBook;
-  activeLoanChildName: string | null;
-  busy: boolean;
-  onYes: () => void;
-  onNo: () => void;
-  onReturn: () => void;
-}) {
-  return (
-    <section className="rounded-2xl border border-border bg-card p-6">
-      <h2 className="text-lg font-semibold">Is this the right book?</h2>
-      <div className="mt-4">
-        <BookCard {...book} />
-      </div>
-      {activeLoanChildName && (
-        <div className="mt-4 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
-          Currently on loan to <strong>{activeLoanChildName}</strong>.
-          <Button
-            size="sm"
-            variant="secondary"
-            className="ml-3"
-            disabled={busy}
-            onClick={onReturn}
-          >
-            <RotateCcw className="mr-1 h-4 w-4" /> Mark returned
-          </Button>
-        </div>
-      )}
-      <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-        <Button variant="ghost" onClick={onNo} disabled={busy}>
-          <X className="mr-1 h-4 w-4" /> Not the right book
-        </Button>
-        <Button onClick={onYes} disabled={busy || !!activeLoanChildName}>
-          <Check className="mr-1 h-4 w-4" /> Yes, loan it
-        </Button>
-      </div>
-    </section>
-  );
-}
-
-function AddToCollectionStep({
+function ConfirmBookDialog({
   book,
   busy,
   onCancel,
   onConfirm,
 }: {
-  book: BookData;
+  book: BookData | null;
   busy: boolean;
   onCancel: () => void;
   onConfirm: (book: BookData, category: string, subgenre: string) => void;
 }) {
   const [category, setCategory] = useState<"Fiction" | "Non-Fiction" | "">("");
   const [subgenre, setSubgenre] = useState<string>("");
+
+  useEffect(() => {
+    setCategory("");
+    setSubgenre("");
+  }, [book?.isbn]);
+
   const options = category ? SUBGENRES[category] : [];
-  const canSave = !!category && !!subgenre && !busy;
+  const canSave = !!book && !!category && !!subgenre && !busy;
 
   return (
-    <section className="rounded-2xl border border-border bg-card p-6">
-      <h2 className="text-lg font-semibold">Add this book to the collection</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        It's not on our shelf yet. Pick a category, then we'll loan it.
-      </p>
-      <div className="mt-4">
-        <BookCard
-          title={book.title}
-          authors={book.authors}
-          cover_url={book.cover_url}
-        />
-      </div>
-      <div className="mt-5 grid gap-3 sm:grid-cols-2">
-        <div className="grid gap-1.5">
-          <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Category
-          </label>
-          <Select
-            value={category}
-            onValueChange={(v) => {
-              setCategory(v as "Fiction" | "Non-Fiction");
-              setSubgenre("");
-            }}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Fiction / Non-Fiction" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Fiction">Fiction</SelectItem>
-              <SelectItem value="Non-Fiction">Non-Fiction</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="grid gap-1.5">
-          <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Sub-genre
-          </label>
-          <Select value={subgenre} onValueChange={setSubgenre} disabled={!category}>
-            <SelectTrigger>
-              <SelectValue
-                placeholder={category ? "Choose a shelf" : "Pick category first"}
-              />
-            </SelectTrigger>
-            <SelectContent>
-              {options.map((g) => (
-                <SelectItem key={g} value={g}>
-                  {g}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-        <Button variant="ghost" onClick={onCancel} disabled={busy}>
-          Cancel
-        </Button>
-        <Button
-          disabled={!canSave}
-          onClick={() => category && subgenre && onConfirm(book, category, subgenre)}
-        >
-          {busy ? (
-            <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-          ) : (
-            <Check className="mr-1 h-4 w-4" />
-          )}
-          Add & continue
-        </Button>
-      </div>
-    </section>
-  );
-}
+    <Dialog open={!!book} onOpenChange={(o) => !o && onCancel()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Confirm book info</DialogTitle>
+          <DialogDescription>
+            Pick a category and shelf before adding to the library.
+          </DialogDescription>
+        </DialogHeader>
 
-function ChoosePersonStep({
-  title,
-  options,
-  value,
-  onChange,
-  onBack,
-  onNext,
-  emptyHint,
-}: {
-  title: string;
-  options: { id: string; label: string }[];
-  value: string;
-  onChange: (v: string) => void;
-  onBack: () => void;
-  onNext: () => void;
-  emptyHint: string;
-}) {
-  return (
-    <section className="rounded-2xl border border-border bg-card p-6">
-      <h2 className="text-lg font-semibold">{title}</h2>
-      {options.length === 0 ? (
-        <p className="mt-3 text-sm text-muted-foreground">{emptyHint}</p>
-      ) : (
-        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {options.map((o) => (
-            <button
-              key={o.id}
-              type="button"
-              onClick={() => onChange(o.id)}
-              className={`rounded-xl border px-3 py-4 text-sm font-medium transition ${
-                value === o.id
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border bg-background hover:border-primary/50"
-              }`}
+        {book && (
+          <div className="flex gap-4">
+            <div className="aspect-[2/3] w-24 flex-none overflow-hidden rounded bg-secondary">
+              {book.cover_url ? (
+                <img
+                  src={book.cover_url}
+                  alt={`Cover of ${book.title}`}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center">
+                  <BookOpen className="h-6 w-6 opacity-40" />
+                </div>
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold leading-snug">{book.title}</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {book.authors.join(", ") || "Unknown author"}
+              </p>
+              {book.publisher && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {book.publisher}
+                  {book.published_date ? ` · ${book.published_date}` : ""}
+                </p>
+              )}
+              <p className="mt-1 text-xs text-muted-foreground">ISBN {book.isbn}</p>
+            </div>
+          </div>
+        )}
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-1.5">
+            <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Category
+            </label>
+            <Select
+              value={category}
+              onValueChange={(v) => {
+                setCategory(v as "Fiction" | "Non-Fiction");
+                setSubgenre("");
+              }}
             >
-              {o.label}
-            </button>
-          ))}
+              <SelectTrigger>
+                <SelectValue placeholder="Fiction / Non-Fiction" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Fiction">Fiction</SelectItem>
+                <SelectItem value="Non-Fiction">Non-Fiction</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-1.5">
+            <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Sub-genre
+            </label>
+            <Select value={subgenre} onValueChange={setSubgenre} disabled={!category}>
+              <SelectTrigger>
+                <SelectValue placeholder={category ? "Choose a shelf" : "Pick category first"} />
+              </SelectTrigger>
+              <SelectContent>
+                {options.map((g) => (
+                  <SelectItem key={g} value={g}>
+                    {g}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-      )}
-      <div className="mt-6 flex justify-between">
-        <Button variant="ghost" onClick={onBack}>
-          Back
-        </Button>
-        <Button onClick={onNext} disabled={!value}>
-          Next
-        </Button>
-      </div>
-    </section>
+
+        <DialogFooter>
+          <Button variant="ghost" onClick={onCancel} disabled={busy}>
+            Cancel
+          </Button>
+          <Button
+            disabled={!canSave}
+            onClick={() => book && category && subgenre && onConfirm(book, category, subgenre)}
+          >
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save to library"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
-function ConfirmLoanStep({
-  book,
-  className,
-  childName,
-  busy,
-  onBack,
-  onConfirm,
-}: {
-  book: DbBook;
-  className: string;
-  childName: string;
-  busy: boolean;
-  onBack: () => void;
-  onConfirm: () => void;
-}) {
+function EmptyState() {
   return (
-    <section className="rounded-2xl border border-border bg-card p-6">
-      <h2 className="text-lg font-semibold">Confirm the loan</h2>
-      <div className="mt-4">
-        <BookCard {...book} />
-      </div>
-      <dl className="mt-5 grid gap-2 text-sm sm:grid-cols-2">
-        <div className="rounded-lg bg-secondary/40 p-3">
-          <dt className="text-xs uppercase tracking-wide text-muted-foreground">
-            Class
-          </dt>
-          <dd className="mt-0.5 font-medium">{className}</dd>
-        </div>
-        <div className="rounded-lg bg-secondary/40 p-3">
-          <dt className="text-xs uppercase tracking-wide text-muted-foreground">
-            Borrower
-          </dt>
-          <dd className="mt-0.5 font-medium">{childName}</dd>
-        </div>
-        <div className="rounded-lg bg-secondary/40 p-3 sm:col-span-2">
-          <dt className="text-xs uppercase tracking-wide text-muted-foreground">
-            Loaned on
-          </dt>
-          <dd className="mt-0.5 font-medium">
-            {new Date().toLocaleDateString(undefined, {
-              weekday: "long",
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
-          </dd>
-        </div>
-      </dl>
-      <div className="mt-6 flex justify-between">
-        <Button variant="ghost" onClick={onBack} disabled={busy}>
-          Back
-        </Button>
-        <Button onClick={onConfirm} disabled={busy}>
-          {busy ? (
-            <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-          ) : (
-            <Check className="mr-1 h-4 w-4" />
-          )}
-          Confirm loan
-        </Button>
-      </div>
-    </section>
-  );
-}
-
-function DoneStep({
-  book,
-  childName,
-  onAnother,
-}: {
-  book: DbBook;
-  childName: string;
-  onAnother: () => void;
-}) {
-  return (
-    <section className="rounded-2xl border border-primary/40 bg-primary/5 p-6 text-center">
-      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground">
-        <Check className="h-6 w-6" />
-      </div>
-      <h2 className="mt-4 text-xl font-semibold">Loan recorded</h2>
+    <div className="rounded-2xl border border-dashed border-border bg-card/50 py-16 text-center">
+      <BookOpen className="mx-auto h-10 w-10 text-muted-foreground/50" />
+      <p className="mt-4 font-medium">The shelf is empty.</p>
       <p className="mt-1 text-sm text-muted-foreground">
-        <strong>{book.title}</strong> is now on loan to{" "}
-        <strong>{childName}</strong>.
+        Scan your first book to get things started.
       </p>
-      <Button className="mt-6" onClick={onAnother}>
-        <ScanLine className="mr-1 h-4 w-4" /> Loan another book
-      </Button>
-    </section>
+    </div>
+  );
+}
+
+function ManualEntryDialog({
+  entry,
+  onCancel,
+  onSubmit,
+}: {
+  entry: { isbn: string; reason: "not-isbn" | "not-found"; rawCode?: string } | null;
+  onCancel: () => void;
+  onSubmit: (book: BookData) => void;
+}) {
+  const [title, setTitle] = useState("");
+  const [authorsText, setAuthorsText] = useState("");
+  const [isbn, setIsbn] = useState("");
+  const [publisher, setPublisher] = useState("");
+  const [publishedDate, setPublishedDate] = useState("");
+  const [pageCount, setPageCount] = useState("");
+  const [coverUrl, setCoverUrl] = useState("");
+  const [description, setDescription] = useState("");
+
+  useEffect(() => {
+    if (!entry) return;
+    setTitle("");
+    setAuthorsText("");
+    setIsbn(entry.reason === "not-found" ? entry.isbn : "");
+    setPublisher("");
+    setPublishedDate("");
+    setPageCount("");
+    setCoverUrl("");
+    setDescription("");
+  }, [entry]);
+
+  if (!entry) return null;
+
+  const canSave = title.trim().length > 0 && isbn.trim().length > 0;
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!canSave) return;
+    const authors = authorsText
+      .split(",")
+      .map((a) => a.trim())
+      .filter(Boolean);
+    onSubmit({
+      isbn: isbn.trim(),
+      title: title.trim(),
+      authors,
+      publisher: publisher.trim() || null,
+      published_date: publishedDate.trim() || null,
+      page_count: pageCount ? parseInt(pageCount, 10) : null,
+      cover_url: coverUrl.trim() || null,
+      description: description.trim() || null,
+    });
+  }
+
+  return (
+    <Dialog open={!!entry} onOpenChange={(o) => !o && onCancel()}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Add book manually</DialogTitle>
+          <DialogDescription>
+            {entry.reason === "not-isbn" ? (
+              <>
+                The scanned barcode <span className="font-mono">{entry.rawCode ?? entry.isbn}</span>{" "}
+                isn&apos;t an ISBN (it looks like a school sticker or price label).
+                Enter the book&apos;s real details below — the ISBN is on the back
+                cover or copyright page, usually starting with 978 or 979.
+              </>
+            ) : (
+              <>
+                We couldn&apos;t find ISBN <span className="font-mono">{entry.isbn}</span> in
+                any of the lookup sources. Fill in what you can — at minimum a title
+                and ISBN.
+              </>
+            )}
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="grid gap-4 py-2">
+          <div className="grid gap-1.5">
+            <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Title
+            </label>
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} required />
+          </div>
+
+          <div className="grid gap-1.5">
+            <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Authors
+            </label>
+            <Input
+              value={authorsText}
+              onChange={(e) => setAuthorsText(e.target.value)}
+              placeholder="Comma separated"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-1.5">
+              <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                ISBN
+              </label>
+              <Input
+                value={isbn}
+                onChange={(e) => setIsbn(e.target.value)}
+                placeholder="978…"
+                required
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Published
+              </label>
+              <Input
+                value={publishedDate}
+                onChange={(e) => setPublishedDate(e.target.value)}
+                placeholder="2019"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-1.5">
+              <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Publisher
+              </label>
+              <Input value={publisher} onChange={(e) => setPublisher(e.target.value)} />
+            </div>
+            <div className="grid gap-1.5">
+              <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Pages
+              </label>
+              <Input
+                type="number"
+                inputMode="numeric"
+                value={pageCount}
+                onChange={(e) => setPageCount(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-1.5">
+            <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Cover image URL
+            </label>
+            <Input
+              value={coverUrl}
+              onChange={(e) => setCoverUrl(e.target.value)}
+              placeholder="https://…"
+            />
+          </div>
+
+          <div className="grid gap-1.5">
+            <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Description
+            </label>
+            <Textarea
+              rows={3}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={onCancel}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={!canSave}>
+              Continue
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
