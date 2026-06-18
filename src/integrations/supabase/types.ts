@@ -181,6 +181,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_library_staff: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "teacher" | "admin"
