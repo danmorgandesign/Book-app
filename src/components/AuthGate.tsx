@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode, type FormEvent } from "react";
-import { useServerFn, useNavigate } from "@tanstack/react-start";
+import { useServerFn } from "@tanstack/react-start";
+import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { ensureLibraryUser } from "@/lib/library-user.functions";
 import { NavBar } from "./NavBar";
