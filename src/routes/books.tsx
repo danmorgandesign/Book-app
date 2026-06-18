@@ -284,14 +284,17 @@ function EditBookDialog({
   book,
   onClose,
   onSaved,
+  onRetired,
 }: {
   book: Book | null;
   onClose: () => void;
   onSaved: (b: Book) => void;
+  onRetired: (id: string) => void;
 }) {
   const [form, setForm] = useState<Book | null>(book);
   const [authorsText, setAuthorsText] = useState("");
   const [saving, setSaving] = useState(false);
+  const [retiring, setRetiring] = useState(false);
 
   useEffect(() => {
     setForm(book);
@@ -335,6 +338,23 @@ function EditBookDialog({
     }
     toast.success("Book updated");
     onSaved(data as Book);
+  }
+
+  async function handleRetire() {
+    if (!form) return;
+    setRetiring(true);
+    const { error } = await supabase
+      .from("books")
+      .update({ retired: true })
+      .eq("id", form.id);
+    setRetiring(false);
+    if (error) {
+      console.error(error);
+      toast.error("Couldn't retire book", { description: error.message });
+      return;
+    }
+    toast.success("Book retired");
+    onRetired(form.id);
   }
 
   return (
@@ -469,18 +489,32 @@ function EditBookDialog({
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="ghost" onClick={onClose} disabled={saving}>
-            Cancel
-          </Button>
-          <Button onClick={handleSave} disabled={saving}>
-            {saving ? (
+        <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-between">
+          <Button
+            variant="destructive"
+            onClick={handleRetire}
+            disabled={saving || retiring}
+          >
+            {retiring ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <Save className="h-4 w-4" />
+              <Trash2 className="h-4 w-4" />
             )}
-            Save changes
+            Retire book
           </Button>
+          <div className="flex gap-2">
+            <Button variant="ghost" onClick={onClose} disabled={saving || retiring}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave} disabled={saving || retiring}>
+              {saving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              Save changes
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
