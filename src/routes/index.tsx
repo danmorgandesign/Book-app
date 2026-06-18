@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ScanLine, BookOpen, Loader2, Search, Camera } from "lucide-react";
 import { toast } from "sonner";

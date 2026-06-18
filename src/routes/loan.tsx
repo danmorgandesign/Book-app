@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowLeft, BookOpen, Loader2 } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { BookOpen, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/loan")({

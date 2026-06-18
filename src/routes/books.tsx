@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { BookOpen, ArrowLeft, Loader2, Library, SlidersHorizontal, Save, Pencil } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { BookOpen, Loader2, Library, SlidersHorizontal, Save, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Select,
