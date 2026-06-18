@@ -504,3 +504,178 @@ function EmptyState() {
     </div>
   );
 }
+
+function ManualEntryDialog({
+  entry,
+  onCancel,
+  onSubmit,
+}: {
+  entry: { isbn: string; reason: "not-isbn" | "not-found"; rawCode?: string } | null;
+  onCancel: () => void;
+  onSubmit: (book: BookData) => void;
+}) {
+  const [title, setTitle] = useState("");
+  const [authorsText, setAuthorsText] = useState("");
+  const [isbn, setIsbn] = useState("");
+  const [publisher, setPublisher] = useState("");
+  const [publishedDate, setPublishedDate] = useState("");
+  const [pageCount, setPageCount] = useState("");
+  const [coverUrl, setCoverUrl] = useState("");
+  const [description, setDescription] = useState("");
+
+  useEffect(() => {
+    if (!entry) return;
+    setTitle("");
+    setAuthorsText("");
+    setIsbn(entry.reason === "not-found" ? entry.isbn : "");
+    setPublisher("");
+    setPublishedDate("");
+    setPageCount("");
+    setCoverUrl("");
+    setDescription("");
+  }, [entry]);
+
+  if (!entry) return null;
+
+  const canSave = title.trim().length > 0 && isbn.trim().length > 0;
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!canSave) return;
+    const authors = authorsText
+      .split(",")
+      .map((a) => a.trim())
+      .filter(Boolean);
+    onSubmit({
+      isbn: isbn.trim(),
+      title: title.trim(),
+      authors,
+      publisher: publisher.trim() || null,
+      published_date: publishedDate.trim() || null,
+      page_count: pageCount ? parseInt(pageCount, 10) : null,
+      cover_url: coverUrl.trim() || null,
+      description: description.trim() || null,
+    });
+  }
+
+  return (
+    <Dialog open={!!entry} onOpenChange={(o) => !o && onCancel()}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Add book manually</DialogTitle>
+          <DialogDescription>
+            {entry.reason === "not-isbn" ? (
+              <>
+                The scanned barcode <span className="font-mono">{entry.rawCode ?? entry.isbn}</span>{" "}
+                isn&apos;t an ISBN (it looks like a school sticker or price label).
+                Enter the book&apos;s real details below — the ISBN is on the back
+                cover or copyright page, usually starting with 978 or 979.
+              </>
+            ) : (
+              <>
+                We couldn&apos;t find ISBN <span className="font-mono">{entry.isbn}</span> in
+                any of the lookup sources. Fill in what you can — at minimum a title
+                and ISBN.
+              </>
+            )}
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="grid gap-4 py-2">
+          <div className="grid gap-1.5">
+            <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Title
+            </label>
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} required />
+          </div>
+
+          <div className="grid gap-1.5">
+            <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Authors
+            </label>
+            <Input
+              value={authorsText}
+              onChange={(e) => setAuthorsText(e.target.value)}
+              placeholder="Comma separated"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-1.5">
+              <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                ISBN
+              </label>
+              <Input
+                value={isbn}
+                onChange={(e) => setIsbn(e.target.value)}
+                placeholder="978…"
+                required
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Published
+              </label>
+              <Input
+                value={publishedDate}
+                onChange={(e) => setPublishedDate(e.target.value)}
+                placeholder="2019"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-1.5">
+              <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Publisher
+              </label>
+              <Input value={publisher} onChange={(e) => setPublisher(e.target.value)} />
+            </div>
+            <div className="grid gap-1.5">
+              <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Pages
+              </label>
+              <Input
+                type="number"
+                inputMode="numeric"
+                value={pageCount}
+                onChange={(e) => setPageCount(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-1.5">
+            <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Cover image URL
+            </label>
+            <Input
+              value={coverUrl}
+              onChange={(e) => setCoverUrl(e.target.value)}
+              placeholder="https://…"
+            />
+          </div>
+
+          <div className="grid gap-1.5">
+            <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Description
+            </label>
+            <Textarea
+              rows={3}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={onCancel}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={!canSave}>
+              Continue
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
