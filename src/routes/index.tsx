@@ -245,6 +245,15 @@ function Index() {
         onConfirm={saveConfirmed}
       />
 
+      <ManualEntryDialog
+        entry={manualEntry}
+        onCancel={() => setManualEntry(null)}
+        onSubmit={(book) => {
+          setManualEntry(null);
+          stageBook(book);
+        }}
+      />
+
 
       <header className="mx-auto max-w-5xl px-6 pt-12 pb-8 sm:pt-20">
         <h1 className="mt-4 text-5xl font-semibold leading-[1.05] sm:text-6xl">
