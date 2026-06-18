@@ -274,6 +274,7 @@ function BooksPage() {
         book={editing}
         onClose={() => setEditing(null)}
         onSaved={handleSaved}
+        onRetired={handleRetired}
       />
     </div>
   );
