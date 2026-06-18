@@ -110,6 +110,21 @@ export function AuthGate({ children }: { children: ReactNode }) {
         >
           Sign in
         </button>
+
+        <div className="text-center">
+          <button
+            type="button"
+            onClick={() => setShowLostPassword((s) => !s)}
+            className="text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground"
+          >
+            Lost your password?
+          </button>
+          {showLostPassword && (
+            <p className="mt-2 text-sm text-muted-foreground">
+              Please contact the administrator to reset your password.
+            </p>
+          )}
+        </div>
       </form>
     </div>
   );
