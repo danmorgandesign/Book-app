@@ -1,4 +1,4 @@
-// Shared book taxonomy for Bathampton Primary School Library.
+// Shared book taxonomy for Library Lite.
 // Flat hierarchy: Category (Fiction | Non-Fiction) -> Subcategory.
 // Fiction uses the "Genrefication" model (genre + format).
 // Non-Fiction uses thematic, curriculum-linked subject blocks.

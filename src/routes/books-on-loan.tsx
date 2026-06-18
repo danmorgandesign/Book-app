@@ -13,7 +13,7 @@ import {
 export const Route = createFileRoute("/books-on-loan")({
   head: () => ({
     meta: [
-      { title: "Books on Loan — Bathampton Primary School Library" },
+      { title: "Books on Loan — Library Lite" },
       { name: "description", content: "Current loans, filterable by class." },
     ],
   }),

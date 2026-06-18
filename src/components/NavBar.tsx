@@ -44,7 +44,7 @@ export function NavBar() {
         <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <BookOpen className="h-5 w-5 text-primary" />
           <span className="text-sm font-semibold tracking-tight text-foreground">
-            Bathampton Primary School Library
+            Library Lite
           </span>
         </Link>
         <div className="flex items-center gap-6">
