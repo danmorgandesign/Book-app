@@ -63,6 +63,7 @@ function ClassesPage() {
     await supabase.from("classes").insert({ name: newClass.trim() });
     setNewClass("");
     setBusy(false);
+    setAddOpen(false);
     load();
   }
 
