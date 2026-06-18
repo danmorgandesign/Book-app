@@ -6,12 +6,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  ToggleGroup,
+  ToggleGroupItem,
+} from "@/components/ui/toggle-group";
 
 export const Route = createFileRoute("/books-on-loan")({
   head: () => ({
@@ -109,23 +106,23 @@ function BooksOnLoanPage() {
       </header>
 
       <main className="mx-auto max-w-5xl px-6 pb-24">
-        <div className="mb-4 flex items-center gap-3">
+        <div className="mb-4 flex flex-wrap items-center gap-3">
           <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Filter by class
           </span>
-          <Select value={classFilter} onValueChange={setClassFilter}>
-            <SelectTrigger className="w-56 text-sm">
-              <SelectValue placeholder="All classes" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All classes</SelectItem>
-              {classes.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <ToggleGroup
+            type="single"
+            value={classFilter}
+            onValueChange={(v) => v && setClassFilter(v)}
+            className="flex-wrap"
+          >
+            <ToggleGroupItem value="all">All</ToggleGroupItem>
+            {classes.map((c) => (
+              <ToggleGroupItem key={c.id} value={c.id}>
+                {c.name}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
         </div>
 
         {loading ? (
