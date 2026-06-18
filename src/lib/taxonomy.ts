@@ -7,6 +7,8 @@ export type Category = "Fiction" | "Non-Fiction";
 
 export const SUBGENRES: Record<Category, string[]> = {
   Fiction: [
+    // Format-based (youngest readers first)
+    "Picture Book",
     // Core genres
     "Adventure & Survival",
     "Mystery & Crime",
