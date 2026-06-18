@@ -29,6 +29,9 @@ export function NavBar() {
           <Link to="/loan" className={linkClass("/loan")}>
             Loan Book
           </Link>
+          <Link to="/classes" className={linkClass("/classes")}>
+            Manage Classes
+          </Link>
         </div>
       </div>
     </nav>
