@@ -26,6 +26,7 @@ export type Database = {
           page_count: number | null
           published_date: string | null
           publisher: string | null
+          retired: boolean
           subgenre: string | null
           title: string
         }
@@ -40,6 +41,7 @@ export type Database = {
           page_count?: number | null
           published_date?: string | null
           publisher?: string | null
+          retired?: boolean
           subgenre?: string | null
           title: string
         }
@@ -54,6 +56,7 @@ export type Database = {
           page_count?: number | null
           published_date?: string | null
           publisher?: string | null
+          retired?: boolean
           subgenre?: string | null
           title?: string
         }
