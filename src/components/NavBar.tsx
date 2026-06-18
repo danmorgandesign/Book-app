@@ -74,21 +74,23 @@ export function NavBar() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {isAdmin && (
+          {isStaff && (
             <DropdownMenu>
               <DropdownMenuTrigger
                 className={`flex items-center gap-1 ${linkClass(adminActive)}`}
               >
-                Admin
+                {isAdmin ? "Admin" : "Staff"}
                 <ChevronDown className="h-3.5 w-3.5" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start">
                 <DropdownMenuItem asChild>
                   <Link to="/classes">Manage Classes</Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/users">Users</Link>
-                </DropdownMenuItem>
+                {isAdmin && (
+                  <DropdownMenuItem asChild>
+                    <Link to="/users">Users</Link>
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           )}
