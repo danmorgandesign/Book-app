@@ -15,21 +15,30 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const [submitting, setSubmitting] = useState(false);
   const [showLostPassword, setShowLostPassword] = useState(false);
   const ensureUser = useServerFn(ensureLibraryUser);
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Ensure the library account exists (idempotent, server-side).
     ensureUser({}).catch((e) => console.error("ensureLibraryUser failed", e));
 
     supabase.auth.getSession().then(({ data }) => {
-      setAuthed(!!data.session);
+      const isAuthed = !!data.session;
+      setAuthed(isAuthed);
       setReady(true);
+      if (isAuthed && window.location.pathname === "/") {
+        navigate({ to: "/loan" });
+      }
     });
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      setAuthed(!!session);
+      const isAuthed = !!session;
+      setAuthed(isAuthed);
+      if (isAuthed && window.location.pathname === "/") {
+        navigate({ to: "/loan" });
+      }
     });
     return () => sub.subscription.unsubscribe();
-  }, [ensureUser]);
+  }, [ensureUser, navigate]);
 
   if (!ready) return null;
 
