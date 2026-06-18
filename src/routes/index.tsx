@@ -154,18 +154,25 @@ function Index() {
     return true;
   }
 
-  async function handleIsbn(rawIsbn: string) {
+  async function handleIsbn(rawCode: string) {
     setScannerOpen(false);
     setBusy(true);
     try {
-      const isbn = rawIsbn.replace(/[^0-9Xx]/g, "");
-      if (isbn.length !== 10 && isbn.length !== 13) {
-        toast.error("That doesn't look like a book barcode (ISBN-10/13).");
+      const check = validateIsbn(rawCode);
+      if (!check.ok) {
+        // Not a real ISBN — e.g. a UK price sticker or school accession label.
+        toast.error("That barcode isn't an ISBN. Enter the book details manually.");
+        setManualEntry({
+          isbn: check.cleaned,
+          reason: "not-isbn",
+          rawCode,
+        });
         return;
       }
-      const book = await lookupBook(isbn);
+      const book = await lookupBook(check.isbn);
       if (!book) {
-        toast.error("Couldn't find that book. Try another edition?");
+        toast.error("Couldn't find that ISBN online. Enter the details manually.");
+        setManualEntry({ isbn: check.isbn, reason: "not-found" });
         return;
       }
       await stageBook(book);
