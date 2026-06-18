@@ -65,6 +65,8 @@ function BooksPage() {
   const [categoryFilter, setCategoryFilter] = useState<"All" | "Fiction" | "Non-Fiction">("All");
   const [subgenreFilter, setSubgenreFilter] = useState<string>("All");
   const [editing, setEditing] = useState<Book | null>(null);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 12;
 
   useEffect(() => {
     async function loadBooks() {
