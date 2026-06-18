@@ -59,6 +59,95 @@ export type Database = {
         }
         Relationships: []
       }
+      children: {
+        Row: {
+          class_id: string
+          created_at: string
+          first_name: string
+          id: string
+          last_initial: string | null
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          first_name: string
+          id?: string
+          last_initial?: string | null
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          first_name?: string
+          id?: string
+          last_initial?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "children_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      classes: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      loans: {
+        Row: {
+          book_id: string
+          child_id: string
+          id: string
+          loaned_at: string
+          returned_at: string | null
+        }
+        Insert: {
+          book_id: string
+          child_id: string
+          id?: string
+          loaned_at?: string
+          returned_at?: string | null
+        }
+        Update: {
+          book_id?: string
+          child_id?: string
+          id?: string
+          loaned_at?: string
+          returned_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loans_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loans_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
