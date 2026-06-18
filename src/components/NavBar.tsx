@@ -1,0 +1,36 @@
+import { Link, useRouterState } from "@tanstack/react-router";
+import { BookOpen } from "lucide-react";
+
+export function NavBar() {
+  const { location } = useRouterState();
+  const current = location.pathname;
+
+  const linkClass = (path: string) =>
+    `text-sm font-medium underline-offset-4 hover:underline ${
+      current === path ? "text-foreground" : "text-muted-foreground"
+    }`;
+
+  return (
+    <nav className="border-b border-border bg-background">
+      <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
+        <div className="flex items-center gap-2">
+          <BookOpen className="h-5 w-5 text-primary" />
+          <span className="text-sm font-semibold tracking-tight text-foreground">
+            Bathampton Primary School Library
+          </span>
+        </div>
+        <div className="flex items-center gap-6">
+          <Link to="/" className={linkClass("/")}>
+            Scanner
+          </Link>
+          <Link to="/books" className={linkClass("/books")}>
+            Library
+          </Link>
+          <Link to="/loan" className={linkClass("/loan")}>
+            Loan Book
+          </Link>
+        </div>
+      </div>
+    </nav>
+  );
+}
