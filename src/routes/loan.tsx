@@ -123,6 +123,7 @@ function LoanPage() {
         .from("books")
         .select("id,isbn,title,authors,cover_url")
         .eq("isbn", isbn)
+        .eq("retired", false)
         .maybeSingle();
       if (existing) {
         const eBook = existing as DbBook;
