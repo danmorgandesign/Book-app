@@ -81,6 +81,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "Lovable App" },
       { name: "description", content: "Scan My Book uses your phone's camera to identify books via barcode and store their details in a database." },
       { name: "author", content: "Lovable" },
+      { name: "robots", content: "noindex, nofollow" },
       { property: "og:title", content: "Lovable App" },
       { property: "og:description", content: "Scan My Book uses your phone's camera to identify books via barcode and store their details in a database." },
       { property: "og:type", content: "website" },
