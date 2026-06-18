@@ -150,19 +150,39 @@ function ClassesPage() {
           <p className="text-sm text-muted-foreground">No classes yet.</p>
         ) : (
           <div className="space-y-6">
-            {classes.map((cls) => {
-              const kids = children.filter((c) => c.class_id === cls.id);
-              return (
-                <ClassCard
-                  key={cls.id}
-                  cls={cls}
-                  kids={kids}
-                  onDeleteClass={() => deleteClass(cls.id)}
-                  onAddChild={(f, i) => addChild(cls.id, f, i)}
-                  onDeleteChild={deleteChild}
-                />
-              );
-            })}
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Filter
+              </span>
+              <ToggleGroup
+                type="single"
+                value={classFilter}
+                onValueChange={(v) => v && setClassFilter(v)}
+                className="flex-wrap"
+              >
+                <ToggleGroupItem value="all">All</ToggleGroupItem>
+                {classes.map((c) => (
+                  <ToggleGroupItem key={c.id} value={c.id}>
+                    {c.name}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+            </div>
+            {classes
+              .filter((cls) => classFilter === "all" || cls.id === classFilter)
+              .map((cls) => {
+                const kids = children.filter((c) => c.class_id === cls.id);
+                return (
+                  <ClassCard
+                    key={cls.id}
+                    cls={cls}
+                    kids={kids}
+                    onDeleteClass={() => deleteClass(cls.id)}
+                    onAddChild={(f, i) => addChild(cls.id, f, i)}
+                    onDeleteChild={deleteChild}
+                  />
+                );
+              })}
           </div>
         )}
       </main>
