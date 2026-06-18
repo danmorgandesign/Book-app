@@ -28,7 +28,7 @@ import { CoverScanner } from "@/components/CoverScanner";
 import { lookupBook, lookupBookByQuery, type BookData } from "@/lib/lookupBook";
 import { identifyCover } from "@/lib/identifyCover.functions";
 
-export const Route = createFileRoute("/loan")({
+export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Loan a Book — Bathampton Primary School Library" },
