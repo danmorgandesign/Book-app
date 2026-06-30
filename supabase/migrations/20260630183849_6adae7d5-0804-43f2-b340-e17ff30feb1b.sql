@@ -1,0 +1,1 @@
+DELETE FROM public.loans; DELETE FROM public.books;
