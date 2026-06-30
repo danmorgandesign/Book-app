@@ -268,8 +268,6 @@ function EditBookDialog({
 
   if (!form) return null;
 
-  const category = (form.category as "Fiction" | "Non-Fiction" | null) ?? null;
-  const subgenreOptions = category ? SUBGENRES[category] : [];
 
   async function handleSave() {
     if (!form) return;
