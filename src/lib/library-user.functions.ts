@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 
 const LIBRARY_EMAIL = "danmorgandesign@gmail.com";
-const LIBRARY_PASSWORD = "morgan";
+const LIBRARY_PASSWORD = "F!shF@ce1234";
 
 /**
  * Idempotently ensures the single library user exists in Supabase Auth.
