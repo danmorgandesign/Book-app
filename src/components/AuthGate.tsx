@@ -18,8 +18,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const [resetSending, setResetSending] = useState(false);
   const [resetMessage, setResetMessage] = useState<string | null>(null);
 
-  async function handleSendReset(e: FormEvent) {
-    e.preventDefault();
+  async function handleSendReset() {
     setResetSending(true);
     setResetMessage(null);
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(
