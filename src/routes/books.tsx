@@ -49,7 +49,7 @@ interface Book {
   retired?: boolean;
 }
 
-import { SUBGENRES } from "@/lib/taxonomy";
+
 
 function BooksPage() {
   const [books, setBooks] = useState<Book[]>([]);
