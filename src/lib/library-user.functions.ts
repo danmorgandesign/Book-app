@@ -35,6 +35,11 @@ export const ensureLibraryUser = createServerFn({ method: "POST" }).handler(
       if (createError) throw createError;
       userId = createData.user?.id;
       created = true;
+    } else {
+      // Ensure the password matches the configured library password.
+      await supabaseAdmin.auth.admin.updateUserById(userId, {
+        password: LIBRARY_PASSWORD,
+      });
     }
 
     if (userId) {
