@@ -145,18 +145,42 @@ export function AuthGate({ children }: { children: ReactNode }) {
           {submitting ? "Signing in…" : "Sign in"}
         </button>
 
-        <div className="text-center">
+        <div className="space-y-2 text-center">
           <button
             type="button"
-            onClick={() => setShowLostPassword((s) => !s)}
+            onClick={() => {
+              setShowLostPassword((s) => !s);
+              setResetMessage(null);
+            }}
             className="text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground"
           >
             Lost your password?
           </button>
           {showLostPassword && (
-            <p className="mt-2 text-sm text-muted-foreground">
-              Please contact the administrator to reset your password.
-            </p>
+            <div className="mt-3 space-y-2 rounded-md border border-border bg-background p-3 text-left">
+              <label htmlFor="reset-email" className="text-xs font-medium text-foreground">
+                Enter your account email
+              </label>
+              <input
+                id="reset-email"
+                type="email"
+                value={resetEmail}
+                onChange={(e) => setResetEmail(e.target.value)}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
+                placeholder="you@example.com"
+              />
+              <button
+                type="button"
+                onClick={handleSendReset}
+                disabled={resetSending || !resetEmail.trim()}
+                className="w-full rounded-md bg-secondary px-3 py-2 text-sm font-medium text-secondary-foreground hover:bg-secondary/80 disabled:opacity-60"
+              >
+                {resetSending ? "Sending…" : "Send reset link"}
+              </button>
+              {resetMessage && (
+                <p className="text-xs text-muted-foreground">{resetMessage}</p>
+              )}
+            </div>
           )}
         </div>
       </form>
