@@ -179,12 +179,12 @@ function AddPage() {
     }
   }
 
-  async function saveConfirmed(book: BookData, category: string, subgenre: string) {
+  async function saveConfirmed(book: BookData) {
     setBusy(true);
     try {
       const { error } = await supabase
         .from("books")
-        .insert({ ...book, category, subgenre });
+        .insert({ ...book });
       if (error) {
         toast.error(error.message);
         return;
@@ -196,6 +196,7 @@ function AddPage() {
       setBusy(false);
     }
   }
+
 
   return (
     <div className="min-h-screen">
