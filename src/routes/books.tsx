@@ -133,69 +133,11 @@ function BooksPage() {
             type="text"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            placeholder="Search by title, author, genre, or ISBN…"
+            placeholder="Search by title, author, or ISBN…"
             className="flex-1 rounded-lg border border-border bg-card px-4 py-3 text-sm outline-none ring-primary/20 transition-shadow placeholder:text-muted-foreground focus:ring-2"
           />
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <SlidersHorizontal className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Select
-                value={categoryFilter}
-                onValueChange={(v) => {
-                  setCategoryFilter(v as "All" | "Fiction" | "Non-Fiction");
-                  setSubgenreFilter("All");
-                }}
-              >
-                <SelectTrigger className="w-40 pl-8 text-sm">
-                  <SelectValue placeholder="Category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="All">All categories</SelectItem>
-                  <SelectItem value="Fiction">Fiction</SelectItem>
-                  <SelectItem value="Non-Fiction">Non-Fiction</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <Select
-              value={subgenreFilter}
-              onValueChange={setSubgenreFilter}
-              disabled={categoryFilter === "All"}
-            >
-              <SelectTrigger className="w-44 text-sm">
-                <SelectValue
-                  placeholder={
-                    categoryFilter === "All" ? "Pick category first" : "Sub-genre"
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="All">All sub-genres</SelectItem>
-                {availableSubgenres.map((g) => (
-                  <SelectItem key={g} value={g}>
-                    {g}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
         </div>
 
-        {activeFilterCount > 0 && (
-          <div className="mb-4 flex items-center gap-2 text-xs text-muted-foreground">
-            <span>
-              Showing {filtered.length} of {books.length}
-            </span>
-            <button
-              onClick={() => {
-                setCategoryFilter("All");
-                setSubgenreFilter("All");
-              }}
-              className="underline-offset-2 hover:underline"
-            >
-              Clear filters
-            </button>
-          </div>
-        )}
 
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24">
