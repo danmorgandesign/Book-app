@@ -599,18 +599,13 @@ function AddToCollectionStep({
   book: BookData;
   busy: boolean;
   onCancel: () => void;
-  onConfirm: (book: BookData, category: string, subgenre: string) => void;
+  onConfirm: (book: BookData) => void;
 }) {
-  const [category, setCategory] = useState<"Fiction" | "Non-Fiction" | "">("");
-  const [subgenre, setSubgenre] = useState<string>("");
-  const options = category ? SUBGENRES[category] : [];
-  const canSave = !!category && !!subgenre && !busy;
-
   return (
     <section className="rounded-2xl border border-border bg-card p-6">
       <h2 className="text-lg font-semibold">Add this book to the collection</h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        It's not on our shelf yet. Pick a category, then we'll loan it.
+        It's not on our shelf yet. Add it, then we'll loan it.
       </p>
       <div className="mt-4">
         <BookCard
@@ -619,55 +614,11 @@ function AddToCollectionStep({
           cover_url={book.cover_url}
         />
       </div>
-      <div className="mt-5 grid gap-3 sm:grid-cols-2">
-        <div className="grid gap-1.5">
-          <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Category
-          </label>
-          <Select
-            value={category}
-            onValueChange={(v) => {
-              setCategory(v as "Fiction" | "Non-Fiction");
-              setSubgenre("");
-            }}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Fiction / Non-Fiction" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Fiction">Fiction</SelectItem>
-              <SelectItem value="Non-Fiction">Non-Fiction</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="grid gap-1.5">
-          <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Sub-genre
-          </label>
-          <Select value={subgenre} onValueChange={setSubgenre} disabled={!category}>
-            <SelectTrigger>
-              <SelectValue
-                placeholder={category ? "Choose a shelf" : "Pick category first"}
-              />
-            </SelectTrigger>
-            <SelectContent>
-              {options.map((g) => (
-                <SelectItem key={g} value={g}>
-                  {g}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
       <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
         <Button variant="ghost" onClick={onCancel} disabled={busy}>
           Cancel
         </Button>
-        <Button
-          disabled={!canSave}
-          onClick={() => category && subgenre && onConfirm(book, category, subgenre)}
-        >
+        <Button disabled={busy} onClick={() => onConfirm(book)}>
           {busy ? (
             <Loader2 className="mr-1 h-4 w-4 animate-spin" />
           ) : (
@@ -679,6 +630,7 @@ function AddToCollectionStep({
     </section>
   );
 }
+
 
 function ChoosePersonStep({
   title,
