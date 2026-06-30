@@ -1,14 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
-import { BookOpen, Loader2, Library, SlidersHorizontal, Save, Pencil, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { useEffect, useState } from "react";
+import { BookOpen, Loader2, Library, Save, Pencil, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -56,14 +49,12 @@ interface Book {
   retired?: boolean;
 }
 
-import { SUBGENRES } from "@/lib/taxonomy";
+
 
 function BooksPage() {
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState<"All" | "Fiction" | "Non-Fiction">("All");
-  const [subgenreFilter, setSubgenreFilter] = useState<string>("All");
   const [editing, setEditing] = useState<Book | null>(null);
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 12;
@@ -85,22 +76,14 @@ function BooksPage() {
     loadBooks();
   }, []);
 
-  const availableSubgenres = useMemo(() => {
-    if (categoryFilter === "All") return [];
-    return SUBGENRES[categoryFilter];
-  }, [categoryFilter]);
-
   const filtered = books.filter((b) => {
     const q = filter.toLowerCase();
-    const matchesText =
-      !filter ||
+    if (!filter) return true;
+    return (
       b.title.toLowerCase().includes(q) ||
       b.authors.some((a) => a.toLowerCase().includes(q)) ||
-      (b.subgenre && b.subgenre.toLowerCase().includes(q)) ||
-      (b.isbn && b.isbn.includes(q));
-    const matchesCategory = categoryFilter === "All" || b.category === categoryFilter;
-    const matchesSubgenre = subgenreFilter === "All" || b.subgenre === subgenreFilter;
-    return matchesText && matchesCategory && matchesSubgenre;
+      (b.isbn && b.isbn.includes(q))
+    );
   });
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -108,10 +91,7 @@ function BooksPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [filter, categoryFilter, subgenreFilter]);
-
-  const activeFilterCount =
-    (categoryFilter !== "All" ? 1 : 0) + (subgenreFilter !== "All" ? 1 : 0);
+  }, [filter]);
 
   function handleSaved(updated: Book) {
     setBooks((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
@@ -122,6 +102,7 @@ function BooksPage() {
     setBooks((prev) => prev.filter((b) => b.id !== id));
     setEditing(null);
   }
+
 
   return (
     <div className="min-h-screen">
@@ -145,69 +126,11 @@ function BooksPage() {
             type="text"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            placeholder="Search by title, author, genre, or ISBN…"
+            placeholder="Search by title, author, or ISBN…"
             className="flex-1 rounded-lg border border-border bg-card px-4 py-3 text-sm outline-none ring-primary/20 transition-shadow placeholder:text-muted-foreground focus:ring-2"
           />
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <SlidersHorizontal className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Select
-                value={categoryFilter}
-                onValueChange={(v) => {
-                  setCategoryFilter(v as "All" | "Fiction" | "Non-Fiction");
-                  setSubgenreFilter("All");
-                }}
-              >
-                <SelectTrigger className="w-40 pl-8 text-sm">
-                  <SelectValue placeholder="Category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="All">All categories</SelectItem>
-                  <SelectItem value="Fiction">Fiction</SelectItem>
-                  <SelectItem value="Non-Fiction">Non-Fiction</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <Select
-              value={subgenreFilter}
-              onValueChange={setSubgenreFilter}
-              disabled={categoryFilter === "All"}
-            >
-              <SelectTrigger className="w-44 text-sm">
-                <SelectValue
-                  placeholder={
-                    categoryFilter === "All" ? "Pick category first" : "Sub-genre"
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="All">All sub-genres</SelectItem>
-                {availableSubgenres.map((g) => (
-                  <SelectItem key={g} value={g}>
-                    {g}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
         </div>
 
-        {activeFilterCount > 0 && (
-          <div className="mb-4 flex items-center gap-2 text-xs text-muted-foreground">
-            <span>
-              Showing {filtered.length} of {books.length}
-            </span>
-            <button
-              onClick={() => {
-                setCategoryFilter("All");
-                setSubgenreFilter("All");
-              }}
-              className="underline-offset-2 hover:underline"
-            >
-              Clear filters
-            </button>
-          </div>
-        )}
 
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24">
@@ -264,15 +187,11 @@ function BooksPage() {
                       </button>
                     </div>
                     <div className="flex flex-col items-end gap-1">
-                      {book.subgenre && (
-                        <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
-                          {book.subgenre}
-                        </span>
-                      )}
                       <span className="text-[10px] tabular-nums text-muted-foreground">
                         {book.isbn}
                       </span>
                     </div>
+
                   </div>
                 </li>
               ))}
@@ -342,8 +261,6 @@ function EditBookDialog({
 
   if (!form) return null;
 
-  const category = (form.category as "Fiction" | "Non-Fiction" | null) ?? null;
-  const subgenreOptions = category ? SUBGENRES[category] : [];
 
   async function handleSave() {
     if (!form) return;
@@ -470,52 +387,6 @@ function EditBookDialog({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
-              <Label>Category</Label>
-              <Select
-                value={form.category ?? "unset"}
-                onValueChange={(v) =>
-                  setForm({
-                    ...form,
-                    category: v === "unset" ? null : v,
-                    subgenre: null,
-                  })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="unset">Unset</SelectItem>
-                  <SelectItem value="Fiction">Fiction</SelectItem>
-                  <SelectItem value="Non-Fiction">Non-Fiction</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-1.5">
-              <Label>Sub-genre</Label>
-              <Select
-                value={form.subgenre ?? "unset"}
-                onValueChange={(v) =>
-                  setForm({ ...form, subgenre: v === "unset" ? null : v })
-                }
-                disabled={!category}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={category ? "Sub-genre" : "Pick category"} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="unset">Unset</SelectItem>
-                  {subgenreOptions.map((g) => (
-                    <SelectItem key={g} value={g}>
-                      {g}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
 
           <div className="grid gap-1.5">
             <Label htmlFor="cover">Cover URL</Label>

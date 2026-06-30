@@ -14,13 +14,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { CoverScanner } from "@/components/CoverScanner";
 import { lookupBook, lookupBookByQuery, type BookData } from "@/lib/lookupBook";
@@ -63,7 +56,7 @@ interface Book {
   retired?: boolean;
 }
 
-import { SUBGENRES } from "@/lib/taxonomy";
+
 
 
 function AddPage() {
@@ -179,12 +172,12 @@ function AddPage() {
     }
   }
 
-  async function saveConfirmed(book: BookData, category: string, subgenre: string) {
+  async function saveConfirmed(book: BookData) {
     setBusy(true);
     try {
       const { error } = await supabase
         .from("books")
-        .insert({ ...book, category, subgenre });
+        .insert({ ...book });
       if (error) {
         toast.error(error.message);
         return;
@@ -196,6 +189,7 @@ function AddPage() {
       setBusy(false);
     }
   }
+
 
   return (
     <div className="min-h-screen">
@@ -339,11 +333,6 @@ function BookCard({ book }: { book: Book }) {
         <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
           {book.authors.join(", ") || "Unknown author"}
         </p>
-        {book.subgenre && (
-          <p className="mt-1.5 inline-block rounded-full bg-secondary px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
-            {book.subgenre}
-          </p>
-        )}
       </div>
     </li>
   );
@@ -358,26 +347,15 @@ function ConfirmBookDialog({
   book: BookData | null;
   busy: boolean;
   onCancel: () => void;
-  onConfirm: (book: BookData, category: string, subgenre: string) => void;
+  onConfirm: (book: BookData) => void;
 }) {
-  const [category, setCategory] = useState<"Fiction" | "Non-Fiction" | "">("");
-  const [subgenre, setSubgenre] = useState<string>("");
-
-  useEffect(() => {
-    setCategory("");
-    setSubgenre("");
-  }, [book?.isbn]);
-
-  const options = category ? SUBGENRES[category] : [];
-  const canSave = !!book && !!category && !!subgenre && !busy;
-
   return (
     <Dialog open={!!book} onOpenChange={(o) => !o && onCancel()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Confirm book info</DialogTitle>
           <DialogDescription>
-            Pick a category and shelf before adding to the library.
+            Check the details below and add it to the library.
           </DialogDescription>
         </DialogHeader>
 
@@ -412,53 +390,13 @@ function ConfirmBookDialog({
           </div>
         )}
 
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="grid gap-1.5">
-            <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Category
-            </label>
-            <Select
-              value={category}
-              onValueChange={(v) => {
-                setCategory(v as "Fiction" | "Non-Fiction");
-                setSubgenre("");
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Fiction / Non-Fiction" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Fiction">Fiction</SelectItem>
-                <SelectItem value="Non-Fiction">Non-Fiction</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid gap-1.5">
-            <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Sub-genre
-            </label>
-            <Select value={subgenre} onValueChange={setSubgenre} disabled={!category}>
-              <SelectTrigger>
-                <SelectValue placeholder={category ? "Choose a shelf" : "Pick category first"} />
-              </SelectTrigger>
-              <SelectContent>
-                {options.map((g) => (
-                  <SelectItem key={g} value={g}>
-                    {g}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
         <DialogFooter>
           <Button variant="ghost" onClick={onCancel} disabled={busy}>
             Cancel
           </Button>
           <Button
-            disabled={!canSave}
-            onClick={() => book && category && subgenre && onConfirm(book, category, subgenre)}
+            disabled={!book || busy}
+            onClick={() => book && onConfirm(book)}
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save to library"}
           </Button>
@@ -467,6 +405,7 @@ function ConfirmBookDialog({
     </Dialog>
   );
 }
+
 
 function EmptyState() {
   return (
