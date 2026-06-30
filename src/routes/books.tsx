@@ -62,8 +62,6 @@ function BooksPage() {
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState<"All" | "Fiction" | "Non-Fiction">("All");
-  const [subgenreFilter, setSubgenreFilter] = useState<string>("All");
   const [editing, setEditing] = useState<Book | null>(null);
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 12;
@@ -85,22 +83,14 @@ function BooksPage() {
     loadBooks();
   }, []);
 
-  const availableSubgenres = useMemo(() => {
-    if (categoryFilter === "All") return [];
-    return SUBGENRES[categoryFilter];
-  }, [categoryFilter]);
-
   const filtered = books.filter((b) => {
     const q = filter.toLowerCase();
-    const matchesText =
-      !filter ||
+    if (!filter) return true;
+    return (
       b.title.toLowerCase().includes(q) ||
       b.authors.some((a) => a.toLowerCase().includes(q)) ||
-      (b.subgenre && b.subgenre.toLowerCase().includes(q)) ||
-      (b.isbn && b.isbn.includes(q));
-    const matchesCategory = categoryFilter === "All" || b.category === categoryFilter;
-    const matchesSubgenre = subgenreFilter === "All" || b.subgenre === subgenreFilter;
-    return matchesText && matchesCategory && matchesSubgenre;
+      (b.isbn && b.isbn.includes(q))
+    );
   });
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -108,10 +98,7 @@ function BooksPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [filter, categoryFilter, subgenreFilter]);
-
-  const activeFilterCount =
-    (categoryFilter !== "All" ? 1 : 0) + (subgenreFilter !== "All" ? 1 : 0);
+  }, [filter]);
 
   function handleSaved(updated: Book) {
     setBooks((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
@@ -122,6 +109,7 @@ function BooksPage() {
     setBooks((prev) => prev.filter((b) => b.id !== id));
     setEditing(null);
   }
+
 
   return (
     <div className="min-h-screen">
