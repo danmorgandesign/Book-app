@@ -14,6 +14,25 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [showLostPassword, setShowLostPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetSending, setResetSending] = useState(false);
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
+
+  async function handleSendReset(e: FormEvent) {
+    e.preventDefault();
+    setResetSending(true);
+    setResetMessage(null);
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+      resetEmail.trim(),
+      { redirectTo: `${window.location.origin}/reset-password` },
+    );
+    setResetSending(false);
+    if (resetError) {
+      setResetMessage("Could not send reset email. Check the address and try again.");
+    } else {
+      setResetMessage("If that email is registered, a reset link has been sent.");
+    }
+  }
   const ensureUser = useServerFn(ensureLibraryUser);
   const navigate = useNavigate();
 
