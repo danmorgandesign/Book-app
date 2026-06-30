@@ -1,6 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ScanLine, BookOpen, Loader2, Search, Camera } from "lucide-react";
+import { ScanLine, BookOpen, Loader2, Search, Camera, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -225,14 +225,29 @@ function AddPage() {
 
 
       <header className="mx-auto max-w-5xl px-6 pt-12 pb-8 sm:pt-20">
-        <h1 className="mt-4 text-5xl font-semibold leading-[1.05] sm:text-6xl">
-          Every book,<br />
-          <span className="text-primary italic">one scan</span> away.
-        </h1>
-        <p className="mt-5 max-w-xl text-lg text-muted-foreground">
-          Scan a book's barcode — or snap its front cover — and we'll add it to
-          the shared shelf. No account, no fuss.
-        </p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="mt-4 text-5xl font-semibold leading-[1.05] sm:text-6xl">
+              Every book,<br />
+              <span className="text-primary italic">one scan</span> away.
+            </h1>
+            <p className="mt-5 max-w-xl text-lg text-muted-foreground">
+              Scan a book's barcode — or snap its front cover — and we'll add it to
+              the shared shelf. No account, no fuss.
+            </p>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            asChild
+            className="mt-4 shrink-0 rounded-full"
+            aria-label="Close scan page"
+          >
+            <Link to="/">
+              <X className="h-5 w-5" />
+            </Link>
+          </Button>
+        </div>
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
           <Button
