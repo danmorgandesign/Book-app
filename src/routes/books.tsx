@@ -396,52 +396,6 @@ function EditBookDialog({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
-              <Label>Category</Label>
-              <Select
-                value={form.category ?? "unset"}
-                onValueChange={(v) =>
-                  setForm({
-                    ...form,
-                    category: v === "unset" ? null : v,
-                    subgenre: null,
-                  })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="unset">Unset</SelectItem>
-                  <SelectItem value="Fiction">Fiction</SelectItem>
-                  <SelectItem value="Non-Fiction">Non-Fiction</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-1.5">
-              <Label>Sub-genre</Label>
-              <Select
-                value={form.subgenre ?? "unset"}
-                onValueChange={(v) =>
-                  setForm({ ...form, subgenre: v === "unset" ? null : v })
-                }
-                disabled={!category}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={category ? "Sub-genre" : "Pick category"} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="unset">Unset</SelectItem>
-                  {subgenreOptions.map((g) => (
-                    <SelectItem key={g} value={g}>
-                      {g}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
 
           <div className="grid gap-1.5">
             <Label htmlFor="cover">Cover URL</Label>
