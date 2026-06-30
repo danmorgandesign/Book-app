@@ -340,11 +340,6 @@ function BookCard({ book }: { book: Book }) {
         <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
           {book.authors.join(", ") || "Unknown author"}
         </p>
-        {book.subgenre && (
-          <p className="mt-1.5 inline-block rounded-full bg-secondary px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
-            {book.subgenre}
-          </p>
-        )}
       </div>
     </li>
   );
