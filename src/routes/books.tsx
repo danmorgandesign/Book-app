@@ -194,15 +194,11 @@ function BooksPage() {
                       </button>
                     </div>
                     <div className="flex flex-col items-end gap-1">
-                      {book.subgenre && (
-                        <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
-                          {book.subgenre}
-                        </span>
-                      )}
                       <span className="text-[10px] tabular-nums text-muted-foreground">
                         {book.isbn}
                       </span>
                     </div>
+
                   </div>
                 </li>
               ))}
