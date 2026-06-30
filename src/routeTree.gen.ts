@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UsersRouteImport } from './routes/users'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ClassesRouteImport } from './routes/classes'
 import { Route as BooksOnLoanRouteImport } from './routes/books-on-loan'
 import { Route as BooksRouteImport } from './routes/books'
@@ -19,6 +20,11 @@ import { Route as IndexRouteImport } from './routes/index'
 const UsersRoute = UsersRouteImport.update({
   id: '/users',
   path: '/users',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ClassesRoute = ClassesRouteImport.update({
@@ -53,6 +59,7 @@ export interface FileRoutesByFullPath {
   '/books': typeof BooksRoute
   '/books-on-loan': typeof BooksOnLoanRoute
   '/classes': typeof ClassesRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/users': typeof UsersRoute
 }
 export interface FileRoutesByTo {
@@ -61,6 +68,7 @@ export interface FileRoutesByTo {
   '/books': typeof BooksRoute
   '/books-on-loan': typeof BooksOnLoanRoute
   '/classes': typeof ClassesRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/users': typeof UsersRoute
 }
 export interface FileRoutesById {
@@ -70,13 +78,28 @@ export interface FileRoutesById {
   '/books': typeof BooksRoute
   '/books-on-loan': typeof BooksOnLoanRoute
   '/classes': typeof ClassesRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/users': typeof UsersRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/add' | '/books' | '/books-on-loan' | '/classes' | '/users'
+  fullPaths:
+    | '/'
+    | '/add'
+    | '/books'
+    | '/books-on-loan'
+    | '/classes'
+    | '/reset-password'
+    | '/users'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/add' | '/books' | '/books-on-loan' | '/classes' | '/users'
+  to:
+    | '/'
+    | '/add'
+    | '/books'
+    | '/books-on-loan'
+    | '/classes'
+    | '/reset-password'
+    | '/users'
   id:
     | '__root__'
     | '/'
@@ -84,6 +107,7 @@ export interface FileRouteTypes {
     | '/books'
     | '/books-on-loan'
     | '/classes'
+    | '/reset-password'
     | '/users'
   fileRoutesById: FileRoutesById
 }
@@ -93,6 +117,7 @@ export interface RootRouteChildren {
   BooksRoute: typeof BooksRoute
   BooksOnLoanRoute: typeof BooksOnLoanRoute
   ClassesRoute: typeof ClassesRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   UsersRoute: typeof UsersRoute
 }
 
@@ -103,6 +128,13 @@ declare module '@tanstack/react-router' {
       path: '/users'
       fullPath: '/users'
       preLoaderRoute: typeof UsersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/classes': {
@@ -149,6 +181,7 @@ const rootRouteChildren: RootRouteChildren = {
   BooksRoute: BooksRoute,
   BooksOnLoanRoute: BooksOnLoanRoute,
   ClassesRoute: ClassesRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   UsersRoute: UsersRoute,
 }
 export const routeTree = rootRouteImport
