@@ -181,16 +181,12 @@ function LoanPage() {
     }
   }
 
-  async function addToCollection(
-    book: BookData,
-    category: string,
-    subgenre: string,
-  ) {
+  async function addToCollection(book: BookData) {
     setBusy(true);
     try {
       const { data, error } = await supabase
         .from("books")
-        .insert({ ...book, category, subgenre })
+        .insert({ ...book })
         .select("id,isbn,title,authors,cover_url")
         .single();
       if (error || !data) {
@@ -206,6 +202,7 @@ function LoanPage() {
       setBusy(false);
     }
   }
+
 
   async function confirmLoan() {
     if (!foundBook || !selectedChild) return;
