@@ -354,26 +354,15 @@ function ConfirmBookDialog({
   book: BookData | null;
   busy: boolean;
   onCancel: () => void;
-  onConfirm: (book: BookData, category: string, subgenre: string) => void;
+  onConfirm: (book: BookData) => void;
 }) {
-  const [category, setCategory] = useState<"Fiction" | "Non-Fiction" | "">("");
-  const [subgenre, setSubgenre] = useState<string>("");
-
-  useEffect(() => {
-    setCategory("");
-    setSubgenre("");
-  }, [book?.isbn]);
-
-  const options = category ? SUBGENRES[category] : [];
-  const canSave = !!book && !!category && !!subgenre && !busy;
-
   return (
     <Dialog open={!!book} onOpenChange={(o) => !o && onCancel()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Confirm book info</DialogTitle>
           <DialogDescription>
-            Pick a category and shelf before adding to the library.
+            Check the details below and add it to the library.
           </DialogDescription>
         </DialogHeader>
 
@@ -408,53 +397,13 @@ function ConfirmBookDialog({
           </div>
         )}
 
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="grid gap-1.5">
-            <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Category
-            </label>
-            <Select
-              value={category}
-              onValueChange={(v) => {
-                setCategory(v as "Fiction" | "Non-Fiction");
-                setSubgenre("");
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Fiction / Non-Fiction" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Fiction">Fiction</SelectItem>
-                <SelectItem value="Non-Fiction">Non-Fiction</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid gap-1.5">
-            <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Sub-genre
-            </label>
-            <Select value={subgenre} onValueChange={setSubgenre} disabled={!category}>
-              <SelectTrigger>
-                <SelectValue placeholder={category ? "Choose a shelf" : "Pick category first"} />
-              </SelectTrigger>
-              <SelectContent>
-                {options.map((g) => (
-                  <SelectItem key={g} value={g}>
-                    {g}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
         <DialogFooter>
           <Button variant="ghost" onClick={onCancel} disabled={busy}>
             Cancel
           </Button>
           <Button
-            disabled={!canSave}
-            onClick={() => book && category && subgenre && onConfirm(book, category, subgenre)}
+            disabled={!book || busy}
+            onClick={() => book && onConfirm(book)}
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save to library"}
           </Button>
@@ -463,6 +412,7 @@ function ConfirmBookDialog({
     </Dialog>
   );
 }
+
 
 function EmptyState() {
   return (
