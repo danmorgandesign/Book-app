@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 
 const LIBRARY_EMAIL = "danmorgandesign@gmail.com";
-const LIBRARY_PASSWORD = "morgan";
+const LIBRARY_PASSWORD = "F!shF@ce1234";
 
 /**
  * Idempotently ensures the single library user exists in Supabase Auth.
@@ -35,6 +35,11 @@ export const ensureLibraryUser = createServerFn({ method: "POST" }).handler(
       if (createError) throw createError;
       userId = createData.user?.id;
       created = true;
+    } else {
+      // Ensure the password matches the configured library password.
+      await supabaseAdmin.auth.admin.updateUserById(userId, {
+        password: LIBRARY_PASSWORD,
+      });
     }
 
     if (userId) {
